@@ -44,7 +44,7 @@ def run_claude(prompt, timeout=300):
            "--setting-sources", "", "--output-format", "json"]
     paths.DATA.mkdir(parents=True, exist_ok=True)
     try:
-        out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout,
+        out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
                              cwd=str(paths.DATA))
     except FileNotFoundError as e:
         raise RuntimeError("Não achei o comando claude (Claude Code). Instale ou aponte o caminho em Ajustes.") from e

@@ -20,7 +20,7 @@ STAGES = ["Ideia", "Explorando", "Proposta", "Virou card", "Descartada"]
 def _write(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(text)
+    tmp.write_text(text, encoding="utf-8", newline="\n")
     tmp.replace(path)
 
 
@@ -57,7 +57,7 @@ _PEND = re.compile(r"^- \[( |x)\] (.+)$")
 
 def _pend_lines():
     try:
-        return paths.pendencias().read_text().splitlines()
+        return paths.pendencias().read_text(encoding="utf-8").splitlines()
     except FileNotFoundError:
         return _pend_head().splitlines()
 
@@ -129,7 +129,7 @@ O hub Hangar organiza por estágio; cada ideia é um `###` dentro do estágio. M
 
 def _ideias_text():
     try:
-        return paths.ideias().read_text()
+        return paths.ideias().read_text(encoding="utf-8")
     except FileNotFoundError:
         return IDEIAS_HEAD + "".join(f"## {s}\n\n" for s in STAGES)
 
@@ -260,11 +260,11 @@ def pauta():
     f = pauta_path()
     if f.exists():
         st = f.stat()
-        out["auto"] = {"name": f.stem, "markdown": _strip_front(f.read_text()),
+        out["auto"] = {"name": f.stem, "markdown": _strip_front(f.read_text(encoding="utf-8")),
                        "at": datetime.fromtimestamp(st.st_mtime).isoformat(timespec="minutes")}
     for g in sorted(paths.conversas().glob(f"{today} - *auta*.md")):
         if g != f:
-            out["extra"].append({"name": g.stem, "markdown": _strip_front(g.read_text())})
+            out["extra"].append({"name": g.stem, "markdown": _strip_front(g.read_text(encoding="utf-8"))})
     if not out["auto"]:
         prev = sorted(paths.conversas().glob("*- Pauta do dia.md"))
         if prev:
@@ -278,7 +278,7 @@ def pauta_toggle(body):
     with _lock:
         if not f.exists():
             raise ValueError("ainda não há pauta hoje")
-        lines, n = f.read_text().splitlines(), -1
+        lines, n = f.read_text(encoding="utf-8").splitlines(), -1
         for i, line in enumerate(lines):
             m = re.match(r"^(\s*- )\[( |x)\] ", line)
             if not m:
@@ -306,7 +306,7 @@ def save_pauta(markdown, model):
         _write(f, front + title + body + "\n")
         reg_path = paths.registro()
         if new and reg_path and reg_path.exists():
-            reg = reg_path.read_text().rstrip("\n")
+            reg = reg_path.read_text(encoding="utf-8").rstrip("\n")
             line = f"- [[{f.stem}]] — gerada automaticamente pelo hub Hangar"
             if line not in reg:
                 _write(reg_path, reg + "\n" + line + "\n")
@@ -326,7 +326,7 @@ def extra_notes(key="notas_contexto"):
             seen.add(name)
             name = paths.Path(name)
             try:
-                out.append((name.stem, _strip_front(name.read_text())[:3500]))
+                out.append((name.stem, _strip_front(name.read_text(encoding="utf-8"))[:3500]))
             except OSError:
                 continue
     return out
@@ -334,7 +334,7 @@ def extra_notes(key="notas_contexto"):
 
 def read_note(path, limit=4000):
     try:
-        return _strip_front(path.read_text())[:limit]
+        return _strip_front(path.read_text(encoding="utf-8"))[:limit]
     except OSError:
         return ""
 

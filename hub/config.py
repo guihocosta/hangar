@@ -143,7 +143,7 @@ def _from_env(cfg):
 
 def file_config():
     try:
-        return json.loads(CONFIG_FILE.read_text())
+        return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return {}
     except (OSError, ValueError) as e:
@@ -222,7 +222,7 @@ def save(new):
     cur = file_config()
     merged = _merge(_merge(copy.deepcopy(DEFAULTS), cur), data)
     tmp = CONFIG_FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(merged, ensure_ascii=False, indent=2) + "\n")
+    tmp.write_text(json.dumps(merged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     tmp.replace(CONFIG_FILE)
     with _lock:
         _cache["data"] = None
@@ -234,7 +234,7 @@ def save(new):
 def _read_env_file(p):
     env = {}
     try:
-        for line in p.read_text().splitlines():
+        for line in p.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if "=" in line and not line.startswith("#"):
                 k, v = line.split("=", 1)
@@ -274,7 +274,7 @@ def save_secrets(values):
             cur[k] = str(v).strip().replace("\n", "")
     SECRETS_FILE.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(SECRETS_FILE.with_suffix(".tmp"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write("# Segredos do Hangar (não versionar)\n" + "".join(f"{k}={v}\n" for k, v in cur.items()))
     SECRETS_FILE.with_suffix(".tmp").replace(SECRETS_FILE)
     os.chmod(SECRETS_FILE, 0o600)

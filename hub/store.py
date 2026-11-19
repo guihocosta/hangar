@@ -24,7 +24,7 @@ class Source:
         self._lock = threading.Lock()
         self._refreshing = threading.Event()
         try:
-            snap = json.loads(self.file.read_text())
+            snap = json.loads(self.file.read_text(encoding="utf-8"))
             self.data, self.at = snap["data"], snap["at"]
         except (OSError, ValueError, KeyError):
             pass
@@ -36,7 +36,7 @@ class Source:
                 self.data, self.at, self.error = data, time.time(), None
             paths.CACHE.mkdir(parents=True, exist_ok=True)
             tmp = self.file.with_suffix(".tmp")
-            tmp.write_text(json.dumps({"at": self.at, "data": data}, ensure_ascii=False))
+            tmp.write_text(json.dumps({"at": self.at, "data": data}, ensure_ascii=False), encoding="utf-8", newline="\n")
             tmp.replace(self.file)
         except SourceError as e:
             self.error = str(e)

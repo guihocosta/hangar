@@ -21,7 +21,9 @@ Atalhos: `1`–`6` trocam de aba, `R` sincroniza, `N` anota uma pendência.
 
 ## Requisitos
 
-- Linux ou macOS com Python 3.10+ (só biblioteca padrão, nada para instalar com pip), `curl` e `xdg-open`/`open`.
+- Python 3.10+ (só biblioteca padrão, nada para instalar com pip) e:
+  - **Windows**: PowerShell (já vem); use `hangar.cmd` / `hangar.ps1`;
+  - **Linux ou macOS**: `curl` e `xdg-open`/`open`; use o script `hangar`.
 - Opcionais, conforme as fontes que você ligar:
   - [TickTick](https://ticktick.com): pela **Open API oficial** (crie um app em [developer.ticktick.com](https://developer.ticktick.com) com Redirect URI `http://127.0.0.1:8023/oauth/ticktick`, cole Client ID e Secret em Ajustes, salve e clique em **Conectar TickTick**; ou cole um access token pronto). Sem token, cai para a sessão do app desktop. A Open API não tem hábitos;
   - [`gh`](https://cli.github.com) logado (`gh auth login`);
@@ -35,6 +37,8 @@ git clone https://github.com/luanotoni/hangar.git ~/Projetos/hangar
 ln -s ~/Projetos/hangar/hangar ~/.local/bin/hangar   # ou qualquer pasta do seu PATH
 hangar                                               # sobe o servidor e abre o navegador
 ```
+
+No Windows, ponha a pasta do repositório no PATH (ou crie um atalho para `hangar.cmd`) e rode `hangar`. `hangar timer` agenda a pauta no Agendador de Tarefas e `hangar inicio` sobe o servidor ao entrar no Windows.
 
 Na primeira vez a página abre em **Ajustes**: preencha seu nome, a pasta do vault, ligue as fontes que você usa e salve. Para gerar a pauta todo dia sozinho (systemd do usuário):
 
@@ -51,7 +55,8 @@ hangar ajustes      # abre direto nos Ajustes
 hangar --no-open    # só sobe o servidor
 hangar pauta        # gera a pauta de hoje no vault
 hangar ideias "foco"  # gera sugestões de caminhos para um foco
-hangar timer        # instala/atualiza o timer da pauta
+hangar timer        # instala/atualiza o timer da pauta (systemd no Linux, Agendador de Tarefas no Windows)
+hangar inicio       # Windows: sobe o servidor ao entrar no Windows
 hangar parar        # derruba o servidor
 ```
 

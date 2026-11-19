@@ -35,7 +35,7 @@ def _save_session(body):
     f = _session_path(body["date"])
     paths.SESSIONS.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(body, ensure_ascii=False))
+    tmp.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8", newline="\n")
     tmp.replace(f)
 
 
@@ -175,7 +175,7 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 self._json(400, {"error": "data inválida"})
                 return
-            self._json(200, json.loads(f.read_text()) if f.exists() else {})
+            self._json(200, json.loads(f.read_text(encoding="utf-8")) if f.exists() else {})
             return
         if path.startswith("/api/"):
             self._json(404, {"error": "rota desconhecida"})
