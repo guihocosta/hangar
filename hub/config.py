@@ -5,7 +5,7 @@
 - Qualquer chave pode ser sobrescrita por ambiente: `HANGAR_<SEÇÃO>_<CHAVE>` em maiúsculas
   (ex.: `HANGAR_VAULT_CAMINHO`, `HANGAR_TRABALHO_GITHUB_ORG`). Listas e objetos vão em JSON.
   Uma chave vinda do ambiente aparece travada na página.
-- Segredos (tokens do GLPI) ficam só no ambiente ou em `~/.config/hangar/hangar.env` (0600),
+- Segredos (tokens do GLPI e do TickTick) ficam só no ambiente ou em `~/.config/hangar/hangar.env` (0600),
   nunca no config.json e nunca voltam para o navegador.
 """
 import copy
@@ -78,7 +78,8 @@ DEFAULTS = {
     },
 }
 
-SECRET_KEYS = ("HANGAR_GLPI_URL", "HANGAR_GLPI_APP_TOKEN", "HANGAR_GLPI_USER_TOKEN")
+SECRET_KEYS = ("HANGAR_GLPI_URL", "HANGAR_GLPI_APP_TOKEN", "HANGAR_GLPI_USER_TOKEN",
+               "HANGAR_TICKTICK_CLIENT_ID", "HANGAR_TICKTICK_CLIENT_SECRET", "HANGAR_TICKTICK_TOKEN")
 _ALIASES = {"HANGAR_VAULT": ("vault", "caminho"), "HANGAR_PORT": ("servidor", "porta"),
             "ROTA23_PORT": ("servidor", "porta")}
 
@@ -244,7 +245,7 @@ def _read_env_file(p):
 
 
 def secret(key):
-    """HANGAR_GLPI_* do ambiente, do hangar.env ou do arquivo de credenciais do config."""
+    """Segredo do ambiente, do hangar.env ou (GLPI) do arquivo de credenciais do config."""
     if os.environ.get(key):
         return os.environ[key]
     v = _read_env_file(SECRETS_FILE).get(key)
