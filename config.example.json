@@ -48,7 +48,10 @@
   },
   "ticktick": {
     "ativo": true,
-    "sessao": "~/.config/ticktick/config.json"
+    "sessao": "~/.config/ticktick/config.json",
+    "escalar": true,
+    "media_dias": 7,
+    "alta_dias": 2
   },
   "trabalho": {
     "ativo": true,

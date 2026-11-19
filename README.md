@@ -80,7 +80,7 @@ Os tokens do GLPI podem vir de `HANGAR_GLPI_URL`, `HANGAR_GLPI_APP_TOKEN` e `HAN
 
 - `server.py` escuta só em 127.0.0.1 e recusa escrita sem o cabeçalho `X-Hangar` ou com outro Host/Origin.
 - **Rápido por desenho:** cada fonte (`hub/store.py`) fica em memória e num snapshot em disco. A página recebe o último snapshot na hora, e o servidor busca de novo em segundo plano quando ele passa da validade (TickTick 90 s, GitHub 5 min, GLPI 15 min).
-- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia e check-in de hábito.
+- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia, check-in de hábito e, com `ticktick.escalar`, a prioridade que sobe conforme o prazo chega (a original fica na etiqueta `p-<nível>`).
 - **GitHub** (`hub/github.py`): `gh api graphql`, só leitura. Status vem do campo `Status` do Project; a sprint é qualquer campo de iteração.
 - **GLPI** (`hub/glpi.py`): só `GET /search/Ticket`. Grupos com o prefixo configurado (ex.: `Squad `) viram as equipes do gráfico.
 - **Vault** (`hub/vault.py`): lê e escreve as notas de pendências, ideias e a pauta do dia (`AAAA-MM-DD - Pauta do dia.md`). As notas continuam editáveis à mão.

@@ -5,6 +5,12 @@
 - **Sessão do app desktop** (`ticktick.sessao`), o caminho antigo, quando não há token.
 
 O token nunca sai do servidor. As leituras independentes rodam em paralelo.
+
+Escalonamento (`ticktick.escalar`): a cada leitura, a prioridade das tarefas abertas sobe conforme o
+prazo chega e é gravada de volta no TickTick, para a Matriz de Eisenhower do app acompanhar. A
+prioridade que você escolheu fica numa etiqueta `p-<nível>` enquanto a tarefa está escalada; quando o
+prazo se afasta (ou some), a tarefa volta para ela e a etiqueta sai. Para mudar a prioridade-base de
+uma tarefa escalada, troque a etiqueta.
 """
 import base64
 import json
@@ -225,7 +231,67 @@ def _save_task(obj):
 # ---------- operações (escolhem o caminho) ----------
 
 def fetch():
-    return _api_fetch() if mode() == "api" else _app_fetch()
+    data = _api_fetch() if mode() == "api" else _app_fetch()
+    if config.get()["ticktick"]["escalar"]:
+        escalate(data["tasks"])
+    return data
+
+
+# ---------- escalonamento de prioridade ----------
+
+P_TAG = {0: "p-nenhuma", 1: "p-baixa", 3: "p-media", 5: "p-alta"}
+TAG_P = {v: k for k, v in P_TAG.items()}
+
+
+def _days_left(due):
+    dt = datetime.fromisoformat(due.replace("Z", "+00:00")).astimezone()
+    return (dt.date() - date.today()).days
+
+
+def target_priority(task, cfg):
+    """(prioridade, etiquetas) que a tarefa deve ter hoje."""
+    tags = [g for g in task["tags"] if g not in TAG_P]
+    base = next((TAG_P[g] for g in task["tags"] if g in TAG_P), task["priority"])
+    rule = 0
+    if task.get("due"):
+        left = _days_left(task["due"])
+        rule = 5 if left <= cfg["alta_dias"] else 3 if left <= cfg["media_dias"] else 0
+    target = max(base, rule)
+    return target, tags + ([P_TAG[base]] if target != base else [])
+
+
+def _write_priority(task, priority, tags):
+    if mode() == "api":
+        obj = op("GET", f"/project/{task['projectId']}/task/{task['id']}")
+        obj.update(priority=priority, tags=tags)
+        op("POST", f"/task/{task['id']}", obj)
+    else:
+        obj = _full_task(task["id"], task["projectId"])
+        obj.update(priority=priority, tags=tags)
+        _save_task(obj)
+
+
+def escalate(tasks):
+    """Grava no TickTick a prioridade do dia de cada tarefa aberta e atualiza a lista na hora."""
+    cfg = config.get()["ticktick"]
+    jobs = []
+    for t in tasks:
+        if t["done"]:
+            continue
+        pr, tags = target_priority(t, cfg)
+        if pr != t["priority"] or sorted(tags) != sorted(t["tags"]):
+            jobs.append((t, pr, tags))
+
+    def run(job):
+        t, pr, tags = job
+        try:
+            _write_priority(t, pr, tags)
+        except SourceError:
+            return  # tenta de novo na próxima leitura
+        t["priority"], t["tags"] = pr, tags
+
+    with ThreadPoolExecutor(6) as ex:
+        list(ex.map(run, jobs))
 
 
 def _shift(obj, days):

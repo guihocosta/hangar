@@ -52,7 +52,13 @@ DEFAULTS = {
         "som": True,
         "aviso": True,  # notificação do navegador
     },
-    "ticktick": {"ativo": True, "sessao": "~/.config/ticktick/config.json"},
+    "ticktick": {
+        "ativo": True,
+        "sessao": "~/.config/ticktick/config.json",
+        "escalar": False,  # sobe a prioridade conforme o prazo chega e grava no TickTick
+        "media_dias": 7,  # prazo em até N dias: pelo menos média
+        "alta_dias": 2,  # prazo em até N dias (ou atrasada): alta
+    },
     "trabalho": {
         "ativo": False,
         "nome": "Trabalho",
