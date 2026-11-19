@@ -358,6 +358,14 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .pomo-what-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-xs); }
 .pomo-what-row input { min-width: 0; }
 .pomo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-sm); }
+.pomo[data-status="over"] .pomo-time { color: var(--color-accent); }
+.pomo[data-status="over"] .pomo-arc { animation: breathe 1.6s var(--ease-in-out) infinite alternate; }
+.pomo-add { width: 100%; border-top: 1px solid var(--color-rule); padding-top: var(--space-md); }
+.pomo-add-f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); margin-top: var(--space-sm); align-items: end; }
+.pomo-add-f label { display: grid; gap: var(--space-3xs); font-size: var(--text-xs); color: var(--color-ink-2); }
+.pomo-add-f .wide { grid-column: 1 / -1; }
+.pomo-add-f input, .pomo-add-f select { width: 100%; min-width: 0; }
+.pomo-add-f .btn { justify-self: end; }
 .pomo-actions .btn-primary kbd { color: var(--color-accent-ink); border-color: color-mix(in oklab, var(--color-accent-ink) 40%, transparent); }
 .foco-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); padding: var(--space-md) var(--space-lg); }
 .foco-stats small { font-size: var(--text-sm); color: var(--color-muted); }

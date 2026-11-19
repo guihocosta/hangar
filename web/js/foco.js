@@ -4,7 +4,7 @@ import { $, state, api, toast, esc, pad, dayKey, hm, fmtDur, shortDate, WDS, are
 
 const KEY = "pomo";
 const LABEL = { foco: "Foco", curta: "Pausa curta", longa: "Pausa longa" };
-const fc = () => state.cfg?.foco || { minutos: 25, pausa_curta: 5, pausa_longa: 15, ciclos: 4, meta_diaria: 8, auto_pausa: true, auto_foco: false, som: true, aviso: true };
+const fc = () => state.cfg?.foco || { minutos: 25, pausa_curta: 5, pausa_longa: 15, ciclos: 4, meta_diaria: 8, auto_pausa: true, auto_foco: false, hora_extra: true, som: true, aviso: true };
 const durMin = (phase) => Math.max(1, Number({ foco: fc().minutos, curta: fc().pausa_curta, longa: fc().pausa_longa }[phase]) || 1);
 const stamp = (d) => `${dayKey(d)}T${hm(d)}`;
 
@@ -20,11 +20,15 @@ function persist() { pref(KEY, p); }
 
 const planMs = () => (p.plan || durMin(p.phase)) * 60000;
 function leftMs() {
+  if (p.status === "over") return 0;
   if (p.status === "run") return Math.max(0, p.endsAt - Date.now());
   if (p.status === "pause") return p.left;
   return durMin(p.phase) * 60000;
 }
 const elapsedMin = () => Math.floor((planMs() - leftMs()) / 60000);
+// "over": o tempo do foco acabou e o relógio segue contando o extra até você concluir
+const extraMs = () => (p.status === "over" ? Math.max(0, Date.now() - p.endsAt) : 0);
+const extraMin = () => Math.floor(extraMs() / 60000);
 
 /* ---------- transições ---------- */
 function start() {
@@ -53,11 +57,12 @@ function skip() {
   toIdle("foco"); persist(); paint();
 }
 
-function finish() {
-  const overdue = Date.now() - p.endsAt;
+/** Fecha a fase. `extra`: minutos além do plano que entram no bloco; `manual`: você concluiu agora. */
+function finish({ extra = 0, manual = false } = {}) {
+  const overdue = manual ? 0 : Date.now() - p.endsAt;
   const was = p.phase;
   if (was === "foco") {
-    record({ min: p.plan, plano: p.plan });
+    record({ min: p.plan + extra, plano: p.plan });
     p.cycle += 1;
     toIdle(p.cycle >= fc().ciclos ? "longa" : "curta");
     notify(`Foco concluído. Hora da ${LABEL[p.phase].toLowerCase()} (${durMin(p.phase)} min).`);
@@ -115,16 +120,18 @@ function notify(msg) {
 }
 
 /* ---------- relógio ---------- */
-const mmss = (ms) => { const s = Math.ceil(ms / 1000); return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; };
+const mmss = (ms, round = Math.ceil) => { const s = round(ms / 1000); return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; };
 
 function paint() {
   const left = leftMs();
   const active = p.status !== "idle";
-  const title = active ? `${p.status === "pause" ? "⏸ " : ""}${mmss(left)} · ${LABEL[p.phase]}` : state.baseTitle || document.title;
+  const over = p.status === "over";
+  const clock = over ? `+${mmss(extraMs(), Math.floor)}` : mmss(left);
+  const title = active ? `${p.status === "pause" ? "⏸ " : ""}${clock} · ${LABEL[p.phase]}` : state.baseTitle || document.title;
   if (title !== lastTitle) { document.title = title; lastTitle = title; }
   if (state.view !== "foco") return;
-  $("#pomo-time").textContent = mmss(left);
-  $("#pomo-phase").textContent = LABEL[p.phase] + (p.status === "pause" ? " · pausado" : "");
+  $("#pomo-time").textContent = clock;
+  $("#pomo-phase").textContent = LABEL[p.phase] + (p.status === "pause" ? " · pausado" : over ? " · tempo extra" : "");
   const frac = active ? 1 - left / planMs() : 0;
   $("#pomo-arc").style.strokeDashoffset = String(Math.round(1000 * (1 - frac)));
   $(".pomo").dataset.phase = p.phase;
@@ -133,15 +140,24 @@ function paint() {
   $("#pomo-cycle").innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i < p.cycle ? "on" : ""}"></i>`).join("");
   $("#pomo-cycle").setAttribute("aria-label", `${Math.min(p.cycle, n)} de ${n} focos até a pausa longa`);
   const main = $("#pomo-main");
-  const lbl = p.status === "run" ? "Pausar" : p.status === "pause" ? "Retomar" : p.phase === "foco" ? "Começar" : "Começar a pausa";
+  const lbl = over ? `Concluir (${p.plan + extraMin()} min)` : p.status === "run" ? "Pausar" : p.status === "pause" ? "Retomar" : p.phase === "foco" ? "Começar" : "Começar a pausa";
   if (main.dataset.lbl !== lbl) { main.innerHTML = `${lbl} <kbd>Espaço</kbd>`; main.dataset.lbl = lbl; }
-  $("#pomo-stop").hidden = !(active && p.phase === "foco");
+  $("#pomo-stop").hidden = !(active && p.phase === "foco") || over;
+  const plan = $("#pomo-plan");
+  plan.hidden = !(over && extraMin() >= 1);
+  if (!plan.hidden) plan.textContent = `Contar só os ${p.plan} min`;
   $("#pomo-skip").hidden = p.phase === "foco";
   $("#pomo-status").textContent = p.pending.length ? `${p.pending.length} bloco(s) esperando para ir ao vault.` : "";
 }
 
+function overtime() {
+  p.status = "over"; persist();
+  notify(`Deu o tempo do foco (${p.plan} min). Sigo contando o extra; conclua quando parar.`);
+  paint();
+}
+
 function tick() {
-  if (p.status === "run" && Date.now() >= p.endsAt) finish();
+  if (p.status === "run" && Date.now() >= p.endsAt) { if (p.phase === "foco" && fc().hora_extra !== false) overtime(); else finish(); }
   else paint();
 }
 
@@ -184,14 +200,14 @@ function renderStats() {
 
   $("#c-fhoje").textContent = s.hoje.itens.length || "";
   $("#fhoje").innerHTML = s.hoje.itens.length ? [...s.hoje.itens].reverse().map((e) => `<li class="row${e.done ? "" : " is-cut"}"><div><p class="row-title">${esc(e.text || "Foco sem nome")}</p>
-    <p class="row-meta"><span class="num">${esc(e.at)}</span><span class="num">${e.done ? `${e.min} min` : `${e.min} de ${e.plan} min · interrompido`}</span>${e.area ? `<span class="tag" style="color:${areaColor(e.area)}">${esc(e.area)}</span>` : ""}</p></div></li>`).join("")
+    <p class="row-meta"><span class="num">${esc(e.at)}</span><span class="num">${e.done ? `${e.min} min${e.extra ? ` · +${e.extra} além do plano` : ""}` : `${e.min} de ${e.plan} min · interrompido`}</span>${e.area ? `<span class="tag" style="color:${areaColor(e.area)}">${esc(e.area)}</span>` : ""}</p></div></li>`).join("")
     : `<li class="empty">Nenhum bloco hoje ainda.</li>`;
 }
 
 function renderPicker() {
   const sel = $("#pomo-area");
   const opts = `<option value="">Sem área</option>` + (state.cfg?.areas || []).map((a) => `<option value="${esc(a.id)}">${esc(a.nome)}</option>`).join("");
-  if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; }
+  if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; $("#pomo-add-area").innerHTML = opts; }
   sel.value = p.area || "";
   const input = $("#pomo-task");
   if (document.activeElement !== input) input.value = p.task || "";
@@ -208,7 +224,26 @@ export function renderFoco() {
 }
 
 export function bindFoco() {
-  $("#pomo-main").addEventListener("click", () => { if (p.status === "run") pause(); else start(); paint(); });
+  $("#pomo-main").addEventListener("click", () => {
+    if (p.status === "over") return finish({ extra: extraMin(), manual: true });
+    if (p.status === "run") pause(); else start();
+    paint();
+  });
+  $("#pomo-plan").addEventListener("click", () => finish({ manual: true }));
+  $("#pomo-add").addEventListener("toggle", () => { const f = $("#pomo-add-f"); if (!f.fim.value) f.fim.value = hm(new Date()); });
+  $("#pomo-add-f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget; const min = Math.round(Number(f.min.value));
+    if (!(min >= 1 && min <= 240)) { toast("Entre 1 e 240 minutos."); return; }
+    const [h, m] = (f.fim.value || hm(new Date())).split(":").map(Number);
+    const end = new Date(); end.setHours(h, m, 0, 0);
+    const btn = f.querySelector("button[type=submit]"); btn.setAttribute("aria-busy", "true");
+    try {
+      const r = await api("/api/foco/registrar", { inicio: stamp(new Date(end - min * 60000)), min, plano: min, tarefa: f.tarefa.value, area: f.area.value });
+      if (r?.result === false) toast("Já tem um bloco começando nesse minuto.");
+      else { toast(`${min} min anotados no vault.`); f.tarefa.value = ""; f.fim.value = ""; await loadFoco(); }
+    } catch (err) { toast(err.message); } finally { btn.removeAttribute("aria-busy"); }
+  });
   $("#pomo-stop").addEventListener("click", stop);
   $("#pomo-skip").addEventListener("click", skip);
   $("#pomo-task").addEventListener("input", (e) => { p.task = e.target.value; persist(); });
