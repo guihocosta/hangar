@@ -165,6 +165,8 @@ def pauta_prompt():
         'Português do Brasil, tratando a pessoa por "você".',
         f"Só o que é de {n}. Trabalho de outras pessoas vai numa linha final \"Em espera / de outros\", sem virar tarefa.",
         "Não invente nada fora do contexto. Datas no formato dd/mm.",
+        "Tarefa só sai das fontes (TickTick, GitHub, GLPI), das pendências soltas ou da pauta anterior. "
+        "Lembretes, notas extras e o perfil são contexto: servem para priorizar e escrever, nunca para criar um item.",
         "Cada coisa a fazer é um checkbox `- [ ]`, curto e acionável, com o número do card/PR quando houver.",
         "Priorize: atrasados e prazos de hoje, reviews pedidas paradas, cards bloqueados que dependem da pessoa, depois o resto.",
         "Aproveite a pauta anterior: o que ficou sem marcar e ainda vale entra de novo; o que já foi feito, não.",
