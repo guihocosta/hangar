@@ -1,0 +1,152 @@
+// Estado, API e utilitários compartilhados pelas visões.
+export const $ = (s, r = document) => r.querySelector(s);
+export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+export const state = {
+  view: "hoje",
+  src: {},
+  cfg: null, cfgInfo: null,
+  vault: null,
+  session: null,
+  agenda: { scale: "semana", ref: new Date(), selDay: null },
+};
+
+/* ---------- datas ---------- */
+export const WD = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+export const WDS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+export const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+export const pad = (n) => String(n).padStart(2, "0");
+export const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const AG = new URLSearchParams(location.search).get("agora") || "";
+export const AGORA = /^\d{2}:\d{2}$/.test(AG) ? AG : null;
+export const nowDate = () => { const d = new Date(); if (AGORA) { const [h, m] = AGORA.split(":").map(Number); d.setHours(h, m, 0, 0); } return d; };
+export const todayKey = () => dayKey(new Date());
+export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+export const startOfWeek = (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+export const parseHM = (s) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+export const fmtDur = (m) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? pad(m % 60) : ""}` : `${m} min`);
+export const shortDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+export function ago(iso) {
+  if (!iso) return "nunca";
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return "agora";
+  if (s < 3600) return `há ${Math.round(s / 60)} min`;
+  if (s < 86400) return `há ${Math.round(s / 3600)} h`;
+  return `há ${Math.round(s / 86400)} d`;
+}
+export const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+
+/* ---------- TickTick ---------- */
+export const tt = () => state.src.ticktick?.data || null;
+export function taskDay(t) { const v = t.start || t.due; return v ? dayKey(new Date(v)) : null; }
+export function isLate(t) {
+  if (!t.due || t.done) return false;
+  const due = new Date(t.due);
+  return t.allDay ? dayKey(due) < todayKey() : due < new Date();
+}
+export const taskTime = (t) => (t.allDay || !t.start ? null : hm(new Date(t.start)));
+export function projectInfo(id) {
+  const ps = tt()?.projects || [];
+  const i = ps.findIndex((p) => p.id === id);
+  const name = (i >= 0 ? ps[i].name : "").replace(/^(\p{Extended_Pictographic}️?)(?=\S)/u, "$1 ");
+  return { name, color: `var(--list-${(Math.max(i, 1) - 1) % 5 + 1})` };
+}
+export const taskById = (id) => tt()?.tasks.find((t) => t.id === id);
+export function candidates() {
+  const tasks = (tt()?.tasks || []).filter((t) => !t.done);
+  const today = todayKey(); const tomorrow = dayKey(addDays(new Date(), 1));
+  const by = (a, b) => (b.priority - a.priority) || ((a.due || "") < (b.due || "") ? -1 : 1);
+  const late = tasks.filter((t) => isLate(t) && taskDay(t) !== today).sort(by);
+  const now = tasks.filter((t) => taskDay(t) === today && !late.includes(t)).sort(by);
+  const next = tasks.filter((t) => taskDay(t) === tomorrow).sort(by);
+  return { late, now, next };
+}
+
+/* ---------- configuração ---------- */
+export const cfg = () => state.cfg;
+export function areaColor(id) {
+  const i = (state.cfg?.areas || []).findIndex((a) => a.id === id);
+  return i < 0 ? "var(--color-ink-2)" : `var(--list-${(i % 5) + 1})`;
+}
+export function shortRepo(name) {
+  for (const p of state.cfg?.trabalho?.prefixos_repo || []) if (p && name.startsWith(p)) return name.slice(p.length);
+  return name;
+}
+
+/* ---------- API ---------- */
+export async function api(path, body) {
+  const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Hangar": "1" }, body: JSON.stringify(body) };
+  let r;
+  try { r = await fetch(path, opt); } catch { throw new Error("O servidor do Hangar não respondeu. Rode o comando hangar de novo."); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Falhou (${r.status}).`);
+  return j;
+}
+
+/* ---------- UI ---------- */
+export function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 3400);
+}
+export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export async function busy(btn, fn) {
+  if (btn) { btn.setAttribute("aria-busy", "true"); btn.disabled = true; }
+  try { return await fn(); } catch (e) { toast(e.message); return undefined; } finally { if (btn && btn.isConnected) { btn.removeAttribute("aria-busy"); btn.disabled = false; } }
+}
+export const icon = {
+  up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 10 5-5 5 5"/></svg>',
+  down: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg>',
+  left: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>',
+  right: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>',
+  x: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
+  later: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h10M8.5 4.5 12 8l-3.5 3.5M14 3v10"/></svg>',
+  check: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"/></svg>',
+  ext: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9"/></svg>',
+  eye: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg>',
+};
+
+/* ---------- preferências locais (só conveniência) ---------- */
+export function pref(key, val) {
+  try {
+    if (val === undefined) return JSON.parse(localStorage.getItem("hangar:" + key) || "null");
+    localStorage.setItem("hangar:" + key, JSON.stringify(val));
+  } catch { /* sem storage: segue sem lembrar */ }
+  return val;
+}
+
+/* ---------- markdown mínimo (pauta e ideias) ---------- */
+function inline(s) {
+  return esc(s)
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "<span class=\"wl\">$2</span>")
+    .replace(/\[\[([^\]]+)\]\]/g, "<span class=\"wl\">$1</span>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+export function md(text, { checkable = false } = {}) {
+  const out = []; let list = null; let box = -1; let para = [];
+  const flushP = () => { if (para.length) { out.push(`<p>${inline(para.join(" "))}</p>`); para = []; } };
+  const closeL = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of String(text || "").split("\n")) {
+    const line = raw.trimEnd();
+    let m;
+    if (!line.trim()) { flushP(); closeL(); continue; }
+    if ((m = line.match(/^(#{1,4})\s+(.*)$/))) { flushP(); closeL(); const lv = Math.min(4, m[1].length + 1); out.push(`<h${lv}>${inline(m[2])}</h${lv}>`); continue; }
+    if ((m = line.match(/^\s*-\s+\[( |x)\]\s+(.*)$/))) {
+      flushP(); if (list !== "ul") { closeL(); out.push('<ul class="md-list">'); list = "ul"; }
+      box += 1; const on = m[1] === "x";
+      out.push(checkable
+        ? `<li class="md-check${on ? " is-on" : ""}"><label><input type="checkbox" data-box="${box}"${on ? " checked" : ""}><span>${inline(m[2])}</span></label></li>`
+        : `<li class="md-check${on ? " is-on" : ""}"><span>${inline(m[2])}</span></li>`);
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*]\s+(.*)$/))) { flushP(); if (list !== "ul") { closeL(); out.push('<ul class="md-list">'); list = "ul"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if ((m = line.match(/^\s*\d+\.\s+(.*)$/))) { flushP(); if (list !== "ol") { closeL(); out.push('<ol class="md-list">'); list = "ol"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    closeL(); para.push(line.trim());
+  }
+  flushP(); closeL();
+  return out.join("");
+}

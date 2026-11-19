@@ -1,0 +1,19 @@
+:root {
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 2.074rem; --text-display: 3.583rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(72% 0.15 27); --color-success: oklch(78% 0.12 155);
+  --container: 1440px; --gutter: 40px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  --color-paper: oklch(15.5% 0.032 264); --color-paper-2: oklch(19.5% 0.042 263); --color-paper-3: oklch(24% 0.052 262);
+  --color-ink: oklch(96% 0.008 250); --color-ink-2: oklch(87% 0.025 252); --color-muted: oklch(74% 0.035 256);
+  --color-rule: oklch(30% 0.05 262); --color-rule-2: oklch(42% 0.06 260);
+  --color-field: oklch(68% 0.13 250); --color-field-ink: oklch(16% 0.04 262);
+  --list-1: oklch(76% 0.09 190); --list-2: oklch(80% 0.06 300); --list-3: oklch(72% 0.12 248); --list-4: oklch(86% 0.02 250); --list-5: oklch(82% 0.11 92);
+  --color-accent: oklch(75% 0.165 58); --color-accent-ink: oklch(19% 0.04 60); --color-focus: oklch(82% 0.17 62);
+  --font-display: "Oxanium", ui-sans-serif, system-ui, sans-serif; --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-body);
+  --radius-card: 6px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
+  --tracking-display: -0.02em;
+}

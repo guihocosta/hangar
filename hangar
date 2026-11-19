@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Hangar: abre o hub (sobe o servidor se precisar) ou roda um job.
+#   hangar                 abre no navegador
+#   hangar --no-open       só sobe o servidor
+#   hangar noite           abre direto na aba Noite
+#   hangar ajustes         abre direto na aba Ajustes
+#   hangar pauta           gera a pauta do dia no vault (o timer chama isto)
+#   hangar ideias "foco"   gera sugestões de caminhos para o foco
+#   hangar timer           instala o timer do systemd (usuário) que gera a pauta no horário dos Ajustes
+#   hangar parar           derruba o servidor
+set -euo pipefail
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+py() { python3 -c "import sys; sys.path.insert(0, sys.argv[1]); $1" "$DIR" "${@:2}"; }
+PORT="$(py 'from hub import paths; print(paths.port())')"
+URL="http://127.0.0.1:${PORT}/"
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/hangar"
+
+case "${1:-}" in
+  pauta)
+    exec python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from hub import claude; print(claude.gerar_pauta())' "$DIR" ;;
+  ideias)
+    exec python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from hub import claude; print(claude.gerar_ideias(sys.argv[2]), "ideias novas")' "$DIR" "${2:-}" ;;
+  timer)
+    AT="$(py 'from hub import config; print(config.get()["claude"]["horario_pauta"])')"
+    UNIT="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    mkdir -p "$UNIT"
+    cat >"$UNIT/hangar-pauta.service" <<UNITEOF
+[Unit]
+Description=Hangar: gera a pauta do dia no vault com o Claude
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PATH=$(dirname "$(command -v claude 2>/dev/null || echo "$HOME/.local/bin/claude")"):/usr/local/bin:/usr/bin
+ExecStart=$DIR/hangar pauta
+TimeoutStartSec=600
+UNITEOF
+    cat >"$UNIT/hangar-pauta.timer" <<UNITEOF
+[Unit]
+Description=Hangar: pauta do dia às $AT
+
+[Timer]
+OnCalendar=*-*-* $AT:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
+UNITEOF
+    systemctl --user daemon-reload
+    systemctl --user enable --now hangar-pauta.timer
+    echo "Timer instalado: pauta todo dia às $AT."
+    exit 0 ;;
+  parar)
+    PID="$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || ss -ltnpH "sport = :$PORT" 2>/dev/null | grep -oP 'pid=\K[0-9]+' || true)"
+    if [ -n "$PID" ]; then kill $PID && echo "Hangar parado."; else echo "O Hangar não estava rodando."; fi
+    exit 0 ;;
+esac
+
+if ! curl -fsS -o /dev/null "${URL}" 2>/dev/null; then
+  mkdir -p "$LOG"
+  (cd "$DIR" && nohup python3 server.py >>"$LOG/server.log" 2>&1 &)
+  for _ in $(seq 1 50); do curl -fsS -o /dev/null "${URL}" 2>/dev/null && break; sleep 0.1; done
+fi
+OPEN="$(command -v xdg-open || command -v open || true)"
+case "${1:-}" in
+  --no-open) ;;
+  noite|ajustes) [ -n "$OPEN" ] && "$OPEN" "${URL}#$1" >/dev/null 2>&1 & ;;
+  *) [ -n "$OPEN" ] && "$OPEN" "${URL}" >/dev/null 2>&1 & ;;
+esac
+echo "Hangar em ${URL}"

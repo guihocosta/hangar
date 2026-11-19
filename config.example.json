@@ -1,0 +1,103 @@
+{
+  "usuario": {
+    "nome": "Ana",
+    "perfil": "Ela é desenvolvedora backend numa empresa de software, faz pós-graduação à noite e corre três vezes por semana."
+  },
+  "servidor": {
+    "porta": 8023
+  },
+  "fuso": "America/Sao_Paulo",
+  "areas": [
+    {
+      "id": "trabalho",
+      "nome": "Trabalho"
+    },
+    {
+      "id": "estudo",
+      "nome": "Estudo"
+    },
+    {
+      "id": "pessoal",
+      "nome": "Pessoal"
+    }
+  ],
+  "noite": {
+    "ativo": true,
+    "titulo": "A noite",
+    "fim": "23:00"
+  },
+  "vault": {
+    "caminho": "~/Obsidian/Pessoal",
+    "pendencias": "Hangar/Pendências soltas.md",
+    "ideias": "Hangar/Ideias e melhorias.md",
+    "conversas": "Hangar/Pautas",
+    "registro": ""
+  },
+  "ticktick": {
+    "ativo": true,
+    "sessao": "~/.config/ticktick/config.json"
+  },
+  "trabalho": {
+    "ativo": true,
+    "nome": "Acme",
+    "subtitulo": "Acme · Plataforma",
+    "area": "trabalho",
+    "github_org": "acme",
+    "projeto": 7,
+    "prefixos_repo": [
+      "acme-"
+    ]
+  },
+  "glpi": {
+    "ativo": false,
+    "nome": "Suporte no GLPI",
+    "arquivo_credenciais": "",
+    "prefixo_credenciais": "GLPI_",
+    "prefixo_grupo": "Equipe ",
+    "rotulo_grupo": "equipe",
+    "regex_importados": "",
+    "nota_importados": "",
+    "dica_rede": "Ele só abre pela VPN."
+  },
+  "claude": {
+    "ativo": true,
+    "binario": "",
+    "modelo": "sonnet",
+    "horario_pauta": "07:30",
+    "regras_pauta": [
+      "Plantão de suporte não é tarefa minha, só contexto."
+    ],
+    "secoes_pauta": [
+      "Foco de hoje",
+      "Trabalho",
+      "Estudo",
+      "Pessoal",
+      "Não esquecer",
+      "Uma ideia pra hoje"
+    ],
+    "contexto_ideias": "",
+    "notas_contexto": [
+      "Lembretes/*.md"
+    ],
+    "notas_ideias": []
+  },
+  "ideias": {
+    "areas": [
+      "Produto",
+      "Processo",
+      "Infra",
+      "Time"
+    ],
+    "foco_padrao": "melhorias gerais no meu trabalho",
+    "focos": [
+      {
+        "rotulo": "Menos atrito no deploy",
+        "foco": "deixar o deploy mais rápido e previsível"
+      },
+      {
+        "rotulo": "Onboarding",
+        "foco": "facilitar a entrada de gente nova no time"
+      }
+    ]
+  }
+}
