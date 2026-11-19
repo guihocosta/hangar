@@ -5,7 +5,7 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 - **TickTick**: o que vence hoje, o que ficou para trás, hábitos e a agenda da semana ou do mês;
 - **GitHub**: cards atribuídos a você (com status e sprint de um GitHub Project) e PRs para revisar;
 - **GLPI** (opcional): métricas de um servicedesk, só leitura;
-- **um vault de notas** (Obsidian ou qualquer pasta de markdown): pendências soltas, quadro de ideias e a pauta do dia;
+- **um vault de notas** (Obsidian ou qualquer pasta de markdown): pendências soltas, quadro de ideias, a pauta do dia e o registro do foco;
 - **Claude Code** (opcional): escreve a pauta do dia e sugere caminhos de melhoria a partir de tudo isso.
 
 | Aba | O que mostra |
@@ -15,9 +15,10 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 | **Agenda** | Semana ou mês do TickTick |
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |
+| **Foco** | Pomodoro configurável (tempos, ciclos, meta diária, som, notificação) e as estatísticas: hoje, semana, sequência, 28 dias e por área |
 | **Ajustes** | Toda a configuração, sem editar arquivo |
 
-Atalhos: `1`–`6` trocam de aba, `R` sincroniza, `N` anota uma pendência.
+Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Espaço` começa/pausa o foco.
 
 ## Requisitos
 
@@ -79,6 +80,7 @@ Os tokens do GLPI podem vir de `HANGAR_GLPI_URL`, `HANGAR_GLPI_APP_TOKEN` e `HAN
 - **GLPI** (`hub/glpi.py`): só `GET /search/Ticket`. Grupos com o prefixo configurado (ex.: `Squad `) viram as equipes do gráfico.
 - **Vault** (`hub/vault.py`): lê e escreve as notas de pendências, ideias e a pauta do dia (`AAAA-MM-DD - Pauta do dia.md`). As notas continuam editáveis à mão.
 - **Claude** (`hub/claude.py`): o servidor monta o contexto e chama `claude -p --tools ""` (sem ferramentas, sem sessão salva). O Claude só lê o texto que recebe e devolve markdown ou JSON; quem grava no vault é o hub. Perfil, regras extras, seções da pauta e notas de contexto saem dos Ajustes.
+- **Foco** (`hub/foco.py`): o relógio roda no navegador e sobrevive a recarregar a página. Cada bloco vira uma linha na nota do mês (`Hangar/Foco/AAAA-MM.md`), como `- 2026-11-19 14:05 · 25 min · #trabalho · Revisar o PR`; `12 de 25 min` é um bloco interrompido. As estatísticas saem só dessas notas, então editar à mão também conta.
 - Teste fora de hora: `?agora=19:30` simula o relógio na aba Noite (os botões continuam escrevendo de verdade).
 
 Design: marinho de cabine, azul de estrutura, laranja de sinal e branco, com Oxanium e Atkinson Hyperlegible Next servidas localmente em `web/fonts/` (SIL OFL 1.1).

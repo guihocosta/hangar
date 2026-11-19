@@ -38,3 +38,7 @@ def conversas():
 
 def registro():
     return config.vault_path(config.get()["vault"]["registro"])
+
+
+def foco():
+    return config.vault_path(config.get()["vault"]["foco"])

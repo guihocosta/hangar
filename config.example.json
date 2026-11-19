@@ -31,7 +31,20 @@
     "pendencias": "Hangar/Pendências soltas.md",
     "ideias": "Hangar/Ideias e melhorias.md",
     "conversas": "Hangar/Pautas",
-    "registro": ""
+    "registro": "",
+    "foco": "Hangar/Foco"
+  },
+  "foco": {
+    "ativo": true,
+    "minutos": 25,
+    "pausa_curta": 5,
+    "pausa_longa": 15,
+    "ciclos": 4,
+    "meta_diaria": 8,
+    "auto_pausa": true,
+    "auto_foco": false,
+    "som": true,
+    "aviso": true
   },
   "ticktick": {
     "ativo": true,

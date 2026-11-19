@@ -336,3 +336,42 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .cfg-f p { margin: 0; }
 .cfg-bool label { display: flex; gap: var(--space-xs); align-items: center; font-size: var(--text-sm); }
 .cfg-actions { display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap; position: sticky; bottom: 0; padding: var(--space-sm) 0; background: var(--color-paper); }
+
+/* ---------- foco ---------- */
+.foco { display: grid; grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); gap: var(--space-lg); align-items: start; }
+.pomo { position: sticky; top: var(--space-lg); display: grid; gap: var(--space-lg); justify-items: center; padding: var(--space-xl) var(--space-lg); --phase: var(--color-accent); }
+.pomo[data-phase="curta"], .pomo[data-phase="longa"] { --phase: var(--color-field); }
+.pomo-dial { position: relative; width: min(100%, 18rem); aspect-ratio: 1; }
+.pomo-ring { width: 100%; height: 100%; transform: rotate(-90deg); stroke-width: 4; }
+.pomo-track { stroke: var(--color-rule); }
+.pomo-arc { stroke: var(--phase); stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 0.5s linear; }
+.pomo[data-status="pause"] .pomo-arc { opacity: 0.5; }
+.pomo-read { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--space-2xs); }
+.pomo-phase { font-family: var(--font-display); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.14em; color: var(--phase); }
+.pomo-time { font-family: var(--font-display); font-size: clamp(2.8rem, 2rem + 3vw, 4rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1; color: var(--color-ink); }
+.pomo[data-status="idle"] .pomo-time { color: var(--color-ink-2); }
+.pomo-cycle { display: flex; gap: 6px; min-height: 8px; }
+.pomo-cycle i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--color-rule-2); }
+.pomo-cycle i.on { background: var(--color-accent); border-color: var(--color-accent); }
+.pomo-what { width: 100%; display: grid; gap: var(--space-2xs); }
+.pomo-what label { font-size: var(--text-sm); color: var(--color-ink-2); }
+.pomo-what-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-xs); }
+.pomo-what-row input { min-width: 0; }
+.pomo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-sm); }
+.pomo-actions .btn-primary kbd { color: var(--color-accent-ink); border-color: color-mix(in oklab, var(--color-accent-ink) 40%, transparent); }
+.foco-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); padding: var(--space-md) var(--space-lg); }
+.foco-stats small { font-size: var(--text-sm); color: var(--color-muted); }
+.fbars { position: relative; height: 9rem; display: grid; grid-template-columns: repeat(28, minmax(0, 1fr)); gap: 2px; align-items: end; padding-bottom: 1.2rem; }
+.fcol { position: relative; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+.fbar { display: block; width: 100%; height: var(--h); min-height: 0; border-radius: 4px 4px 0 0; background: color-mix(in oklab, var(--color-accent) 70%, var(--color-paper-2)); }
+.fcol.is-today .fbar { background: var(--color-accent); }
+.fcol:hover .fbar { background: var(--color-focus); }
+.fx { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; font-size: 0.68rem; color: var(--color-muted); white-space: nowrap; }
+.fcol.is-today .fx { color: var(--color-ink-2); }
+.fbars::after { content: ""; position: absolute; left: 0; right: 0; bottom: 1.2rem; border-top: 1px solid var(--color-rule-2); }
+.fgoal { position: absolute; left: 0; right: 0; bottom: calc(1.2rem + (100% - 1.2rem) * var(--goal-n, 0)); border-top: 1px dashed var(--color-muted); pointer-events: none; z-index: 1; }
+.fgoal span { position: absolute; right: 0; bottom: 2px; font-size: 0.68rem; color: var(--color-muted); background: var(--color-paper-2); padding-left: 4px; }
+.ftable { margin-top: var(--space-md); }
+.row.is-cut .row-title { color: var(--color-ink-2); }
+@media (max-width: 64rem) { .foco { grid-template-columns: minmax(0, 1fr); } .pomo { position: static; } }
+@media (max-width: 40rem) { .foco-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fx { font-size: 0.6rem; } }
