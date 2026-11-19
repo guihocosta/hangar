@@ -254,7 +254,7 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .hb-track { height: 10px; border-radius: 4px; background: var(--color-paper-3); overflow: hidden; }
 .hb-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--c-open); }
 .hb.is-warn .hb-fill { background: var(--color-warn); }
-.hb-v { text-align: right; font-family: var(--font-display); }
+.hb-v { text-align: right; font-family: var(--font-display); white-space: nowrap; }
 .oldest { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-panel); padding: var(--space-md) var(--space-lg); }
 .oldest h3 { margin-top: 0; }
 .oldest .muted { margin-top: var(--space-sm); }
@@ -373,6 +373,21 @@ fieldset.cfg-f { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pomo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-sm); }
 .pomo[data-status="over"] .pomo-time { color: var(--color-accent); }
 .pomo[data-status="over"] .pomo-arc { animation: breathe 1.6s var(--ease-in-out) infinite alternate; }
+.pomo-dur { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-xs); margin-top: calc(-1 * var(--space-sm)); }
+.pomo-dur-v { min-width: 4.5em; text-align: center; font-family: var(--font-display); font-weight: 600; color: var(--color-ink); }
+.pomo-presets { display: inline-flex; gap: var(--space-2xs); margin-left: var(--space-xs); }
+.pomo-presets button { min-height: 28px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); border: 1px solid var(--color-rule-2); background: transparent; color: var(--color-muted); font-size: var(--text-xs); font-weight: 700; }
+.pomo-presets button:hover { color: var(--color-ink); border-color: var(--color-muted); }
+.pomo-presets button[aria-pressed="true"] { color: var(--color-accent-ink); background: var(--color-accent); border-color: var(--color-accent); }
+#fhoje .row { align-items: start; }
+.frow-tools { display: flex; gap: var(--space-2xs); }
+.fedit { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm); align-items: end; padding: var(--space-sm) 0; }
+.fedit label { display: grid; gap: var(--space-3xs); font-size: var(--text-xs); color: var(--color-ink-2); }
+.fedit .wide { grid-column: 1 / -1; }
+.fedit input, .fedit select { width: 100%; min-width: 0; }
+.fedit-act { grid-column: 1 / -1; display: flex; gap: var(--space-xs); justify-content: flex-end; flex-wrap: wrap; }
+.btn-danger { color: var(--color-error); }
+.btn-danger[data-armed] { background: var(--color-error); color: var(--color-paper); }
 .pomo-add { width: 100%; border-top: 1px solid var(--color-rule); padding-top: var(--space-md); }
 .pomo-add-f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); margin-top: var(--space-sm); align-items: end; }
 .pomo-add-f label { display: grid; gap: var(--space-3xs); font-size: var(--text-xs); color: var(--color-ink-2); }
