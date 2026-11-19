@@ -1,4 +1,4 @@
-import { $, state, esc, ago, icon, shortDate } from "./core.js";
+import { $, state, esc, ago, icon, shortDate, daysSince, isCobrar } from "./core.js";
 
 const grupo = () => state.cfg?.glpi?.rotulo_grupo || "grupo";
 import { cardRow, prRow, soltasRows, visibleSoltas, hiddenCards } from "./hoje.js";
@@ -9,7 +9,9 @@ function setHidden(set) { try { localStorage.setItem("hangar:hiddenCards", JSON.
 
 function renderCards(gh) {
   const hid = hiddenCards();
-  const cards = gh.cards.filter((c) => !/done|closed/i.test(c.status || ""));
+  const open = gh.cards.filter((c) => !/done|closed/i.test(c.status || ""));
+  renderCobrar(open.filter(isCobrar));
+  const cards = open.filter((c) => !isCobrar(c));
   const shown = cards.filter((c) => !hid.has(String(c.number)));
   const off = cards.filter((c) => hid.has(String(c.number)));
   $("#c-cards").textContent = shown.length || "";
@@ -26,6 +28,15 @@ function renderCards(gh) {
     const len = sp.sprintDays || 14;
     $("#trab-sprint").textContent = `${sp.sprint} · dia ${Math.min(Math.max(day, 1), len)} de ${len}`;
   }
+}
+
+function renderCobrar(list) {
+  const sorted = [...list].sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1));
+  $("#c-cobrar").textContent = sorted.length || "";
+  $("#trab-cobrar").innerHTML = sorted.length ? sorted.map((c) => {
+    const d = daysSince(c.updatedAt);
+    return cardRow(c).replace(`<span>#${c.number}</span>`, `<span>#${c.number}</span><span class="${d >= 7 ? "warn" : ""}">${d === 0 ? "mexido hoje" : `parado há ${d} d`}</span>`);
+  }).join("") : `<li class="empty">Nada esperando o pessoal.</li>`;
 }
 
 function renderPrs(gh) {

@@ -39,6 +39,7 @@ const SCHEMA = [
     ["trabalho.github_org", "Organização no GitHub", "text", "Vazio = todos os repositórios a que você tem acesso."],
     ["trabalho.projeto", "Número do GitHub Project", "number", "De onde saem status e sprint dos cards. 0 = o primeiro projeto do card."],
     ["trabalho.area", "Área das pendências desta aba", "text", "A etiqueta (ex.: trabalho)."],
+    ["trabalho.status_cobrar", "Status para cobrar", "lines", "Um por linha. Cards nesses status saem de Meus cards e da Hoje e vão para Para cobrar (não dependem de você)."],
     ["trabalho.prefixos_repo", "Prefixos para encurtar repos", "lines", "Tirados do nome do repositório na lista de PRs."],
   ]],
   ["GLPI", [

@@ -67,6 +67,7 @@ DEFAULTS = {
         "github_org": "",  # vazio = todos os repositórios a que você tem acesso
         "projeto": 0,  # número do GitHub Project (v2) dos cards; 0 = o primeiro que o card tiver
         "prefixos_repo": [],  # prefixos tirados do nome do repo na lista de PRs
+        "status_cobrar": ["Refinamento"],  # status de cards que não dependem de você: saem da lista e viram "Para cobrar"
     },
     "glpi": {
         "ativo": False,

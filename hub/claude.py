@@ -93,8 +93,19 @@ def _ticktick_ctx(tt):
 def _github_ctx(gh):
     if not gh:
         return "(GitHub indisponível)"
-    cards = "\n".join(f"- {c['tag'] or '#'+str(c['number'])} (#{c['number']}): {c['title']} — {c['status'] or 'sem status'}"
-                      f"{', ' + c['sprint'] if c.get('sprint') else ''}" for c in gh["cards"]) or "- nenhum"
+    cobrar = {str(s).strip().lower() for s in config.get()["trabalho"]["status_cobrar"] if str(s).strip()}
+
+    def line(c):
+        return (f"- {c['tag'] or '#'+str(c['number'])} (#{c['number']}): {c['title']} — {c['status'] or 'sem status'}"
+                f"{', ' + c['sprint'] if c.get('sprint') else ''}")
+    own = [c for c in gh["cards"] if (c["status"] or "").lower() not in cobrar]
+    wait = sorted((c for c in gh["cards"] if (c["status"] or "").lower() in cobrar), key=lambda c: c["updatedAt"])
+    cards = "\n".join(map(line, own)) or "- nenhum"
+    if wait:
+        cards += (f"\n\nCards em {'/'.join(sorted({c['status'] for c in wait}))}: não dependem de {_nome()}, "
+                  "estão com outras pessoas. Não viram tarefa; no máximo uma linha para cobrar quem está com eles "
+                  "(os parados há mais tempo primeiro):\n"
+                  + "\n".join(f"{line(c)} (atualizado {c['updatedAt'][:10]})" for c in wait))
     rev = "\n".join(f"- {p['repo']}#{p['number']} de {p['author']}: {p['title']} (aberto {p['createdAt'][:10]})"
                     for p in gh["reviews"]) or "- nenhuma"
     mine = "\n".join(f"- {p['repo']}#{p['number']}: {p['title']} (decisão: {p['decision'] or 'sem review'})"

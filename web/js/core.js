@@ -69,6 +69,11 @@ export function areaColor(id) {
   const i = (state.cfg?.areas || []).findIndex((a) => a.id === id);
   return i < 0 ? "var(--color-ink-2)" : `var(--list-${(i % 5) + 1})`;
 }
+/** Card num status que não depende de você (ex.: Refinamento): é só para cobrar o pessoal. */
+export function isCobrar(c) {
+  const st = (c.status || "").trim().toLowerCase();
+  return !!st && (state.cfg?.trabalho?.status_cobrar || []).some((s) => String(s).trim().toLowerCase() === st);
+}
 export function shortRepo(name) {
   for (const p of state.cfg?.trabalho?.prefixos_repo || []) if (p && name.startsWith(p)) return name.slice(p.length);
   return name;

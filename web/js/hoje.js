@@ -1,4 +1,4 @@
-import { $, state, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo } from "./core.js";
+import { $, state, isCobrar, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo } from "./core.js";
 
 export function soltasRows(list, { showTag = true } = {}) {
   if (!list.length) return `<li class="empty">Nada solto por aqui.</li>`;
@@ -83,7 +83,7 @@ export function renderHoje() {
   const gh = state.src.github?.data;
   if (gh) {
     const hid = hiddenCards();
-    const cards = gh.cards.filter((c) => !hid.has(String(c.number)) && !/done|closed/i.test(c.status || ""));
+    const cards = gh.cards.filter((c) => !hid.has(String(c.number)) && !/done|closed/i.test(c.status || "") && !isCobrar(c));
     const rows = [...gh.reviews.map(prRow), ...cards.map(cardRow)];
     $("#hoje-trab").innerHTML = rows.join("") || `<li class="empty">Nenhum card ou review pendente.</li>`;
   }
