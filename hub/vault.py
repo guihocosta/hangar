@@ -5,6 +5,8 @@ muda só o trecho certo e grava de forma atômica.
 """
 import hashlib
 import re
+import subprocess
+import sys
 import threading
 from datetime import date, datetime
 
@@ -304,13 +306,36 @@ def save_pauta(markdown, model):
     with _lock:
         new = not f.exists()
         _write(f, front + title + body + "\n")
+        changed = [f]
         reg_path = paths.registro()
         if new and reg_path and reg_path.exists():
             reg = reg_path.read_text(encoding="utf-8").rstrip("\n")
             line = f"- [[{f.stem}]] — gerada automaticamente pelo hub Hangar"
             if line not in reg:
                 _write(reg_path, reg + "\n" + line + "\n")
+                changed.append(reg_path)
+        _git_commit(changed, f"chore(hangar): pauta de {_ddmm(today)}")
     return f
+
+
+def _git_commit(files, message):
+    """Commita só esses arquivos se o vault for um repositório git. Falha não impede a gravação."""
+    def run(*args):
+        return subprocess.run(["git", "-C", str(paths.vault()), *args], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=30,
+                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    names = [str(x) for x in files]
+    try:
+        if run("rev-parse", "--is-inside-work-tree").returncode != 0:
+            return
+        run("add", "--", *names)
+        if run("diff", "--cached", "--quiet", "--", *names).returncode == 0:
+            return
+        out = run("commit", "--only", "-m", message, "--", *names)
+        if out.returncode != 0:
+            print(f"Hangar: não commitei a pauta no vault: {(out.stderr or out.stdout).strip()[-200:]}", file=sys.stderr)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"Hangar: não commitei a pauta no vault: {e}", file=sys.stderr)
 
 
 def extra_notes(key="notas_contexto"):
