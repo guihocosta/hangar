@@ -71,14 +71,18 @@ def _areas():
     return [a["id"] for a in config.get()["areas"] if a.get("id")]
 
 
-def registrar(body):
-    """Anota um bloco. Devolve False se já havia um bloco começando no mesmo minuto (duas abas abertas)."""
+def _stamp(start):
+    return f"- {start:%Y-%m-%d %H:%M} ·"
+
+
+def _line(body):
+    """(início, prefixo da linha, linha) de um bloco a partir do corpo do pedido."""
     start = datetime.fromisoformat(str(body["inicio"]))
     mins = max(1, min(240, int(body["min"])))
     plan = max(1, min(240, int(body.get("plano") or mins)))
     area = body.get("area") if body.get("area") in _areas() else None
     text = " ".join(str(body.get("tarefa") or "").split())[:200].replace(" · ", " - ")
-    stamp = f"- {start:%Y-%m-%d %H:%M} ·"
+    stamp = _stamp(start)
     if mins > plan:  # passou do tempo e seguiu focado: conta tudo, anota o extra
         line = f"{stamp} {mins} min (+{mins - plan})"
     else:
@@ -87,6 +91,45 @@ def registrar(body):
         line += f" · #{area}"
     if text:
         line += f" · {text}"
+    return start, stamp, line
+
+
+def _find(lines, stamp):
+    i = next((i for i, x in enumerate(lines) if x.strip().startswith(stamp) and _LINE.match(x.strip())), None)
+    if i is None:
+        raise ValueError("não achei esse bloco na nota (foi editado à mão?)")
+    return i
+
+
+def editar(body):
+    """Reescreve o bloco que começava em `de` (AAAA-MM-DDTHH:MM). O novo início fica no mesmo dia."""
+    old = datetime.fromisoformat(str(body["de"]))
+    start, stamp, line = _line(body)
+    if start.date() != old.date():
+        raise ValueError("o bloco editado precisa ficar no mesmo dia")
+    with _lock:
+        lines = _lines(old.date())
+        i = _find(lines, _stamp(old))
+        if stamp != _stamp(old) and any(x.strip().startswith(stamp) for x in lines):
+            raise ValueError(f"já tem um bloco começando às {start:%H:%M}")
+        lines[i] = line
+        _write(_file(old.date()), "\n".join(lines) + "\n")
+    return True
+
+
+def apagar(body):
+    """Tira da nota o bloco que começava em `de` (AAAA-MM-DDTHH:MM)."""
+    old = datetime.fromisoformat(str(body["de"]))
+    with _lock:
+        lines = _lines(old.date())
+        del lines[_find(lines, _stamp(old))]
+        _write(_file(old.date()), "\n".join(lines) + "\n")
+    return True
+
+
+def registrar(body):
+    """Anota um bloco. Devolve False se já havia um bloco começando no mesmo minuto (duas abas abertas)."""
+    start, stamp, line = _line(body)
     with _lock:
         lines = _lines(start.date()) or _head(start.date()).splitlines()
         if any(x.startswith(stamp) for x in lines):

@@ -63,6 +63,8 @@ POSTS = {
     "/api/ideia/move": vault.ideia_move,
     "/api/pauta/toggle": vault.pauta_toggle,
     "/api/foco/registrar": foco.registrar,
+    "/api/foco/editar": foco.editar,
+    "/api/foco/apagar": foco.apagar,
     "/api/pauta/gerar": lambda b: claude.start("pauta", claude.gerar_pauta),
     "/api/config": _save_config,
     "/api/ideias/gerar": lambda b: claude.start("ideias", claude.gerar_ideias, b.get("foco")),

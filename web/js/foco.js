@@ -5,7 +5,9 @@ import { $, state, api, toast, esc, pad, dayKey, hm, fmtDur, shortDate, WDS, are
 const KEY = "pomo";
 const LABEL = { foco: "Foco", curta: "Pausa curta", longa: "Pausa longa" };
 const fc = () => state.cfg?.foco || { minutos: 25, pausa_curta: 5, pausa_longa: 15, ciclos: 4, meta_diaria: 8, auto_pausa: true, auto_foco: false, hora_extra: true, som: true, aviso: true };
-const durMin = (phase) => Math.max(1, Number({ foco: fc().minutos, curta: fc().pausa_curta, longa: fc().pausa_longa }[phase]) || 1);
+// p.dur: minutos de foco escolhidos na própria tela (vale até trocar de novo); sem ele, o de Ajustes
+const durMin = (phase) => Math.max(1, Number({ foco: p.dur || fc().minutos, curta: fc().pausa_curta, longa: fc().pausa_longa }[phase]) || 1);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const stamp = (d) => `${dayKey(d)}T${hm(d)}`;
 
 let p = load();
@@ -41,6 +43,23 @@ function start() {
   p.status = "run";
   persist();
 }
+/** ±minutos: parado muda a duração dos próximos focos; rodando ou pausado, mexe só na fase atual. */
+function adjust(delta) {
+  if (p.status === "idle") {
+    if (p.phase !== "foco") return;
+    p.dur = clamp(durMin("foco") + delta, 5, 240);
+  } else if (p.status === "run" || p.status === "pause") {
+    const done = Math.ceil((planMs() - leftMs()) / 60000);
+    const plan = clamp(p.plan + delta, Math.max(1, done + 1), 240);
+    const diff = (plan - p.plan) * 60000;
+    if (!diff) return;
+    p.plan = plan;
+    if (p.status === "run") p.endsAt += diff; else p.left += diff;
+  }
+  persist(); paint();
+}
+function setDur(min) { if (p.status !== "idle" || p.phase !== "foco") return; p.dur = clamp(min, 1, 240); persist(); paint(); }
+
 function pause() { p.left = Math.max(0, p.endsAt - Date.now()); p.status = "pause"; persist(); }
 function toIdle(phase) { p.phase = phase; p.status = "idle"; p.plan = null; p.endsAt = null; p.left = null; p.startedAt = null; }
 
@@ -142,6 +161,15 @@ function paint() {
   const main = $("#pomo-main");
   const lbl = over ? `Concluir (${p.plan + extraMin()} min)` : p.status === "run" ? "Pausar" : p.status === "pause" ? "Retomar" : p.phase === "foco" ? "Começar" : "Começar a pausa";
   if (main.dataset.lbl !== lbl) { main.innerHTML = `${lbl} <kbd>Espaço</kbd>`; main.dataset.lbl = lbl; }
+  const dur = $("#pomo-dur");
+  dur.hidden = over || (p.status === "idle" && p.phase !== "foco");
+  $("#pomo-dur-v").textContent = `${p.status === "idle" ? durMin(p.phase) : p.plan} min`;
+  const presets = p.status === "idle" ? [...new Set([fc().minutos, 25, 50, 90])].filter(Boolean).sort((a, b) => a - b) : [];
+  const ph = presets.map((m) => `<button type="button" data-set="${m}" aria-pressed="${m === durMin("foco")}">${m}${m === fc().minutos ? " · padrão" : ""}</button>`).join("");
+  if ($("#pomo-presets").dataset.h !== ph) { $("#pomo-presets").innerHTML = ph; $("#pomo-presets").dataset.h = ph; }
+  const focusing = active && p.phase === "foco";
+  $("#pomo-task-l").textContent = focusing ? "No que você está focando" : "No que vai focar";
+  $("#pomo-task-h").hidden = !focusing;
   $("#pomo-stop").hidden = !(active && p.phase === "foco") || over;
   const plan = $("#pomo-plan");
   plan.hidden = !(over && extraMin() >= 1);
@@ -180,7 +208,7 @@ function renderStats() {
   $("#fs-seq").textContent = `${s.sequencia} ${s.sequencia === 1 ? "dia" : "dias"}`;
   $("#foco-file").textContent = s.arquivo;
 
-  const goal = meta * fc().minutos;
+  const goal = meta * (p.dur || fc().minutos);
   const max = Math.max(goal, ...s.serie.map((d) => d.min), 30);
   const today = dayKey(new Date());
   $("#fbars").setAttribute("aria-label", `Minutos de foco nos últimos ${s.serie.length} dias; hoje ${s.hoje.min} min.`);
@@ -199,9 +227,59 @@ function renderStats() {
     : `<p class="empty">Os blocos com área aparecem aqui.</p>`;
 
   $("#c-fhoje").textContent = s.hoje.itens.length || "";
-  $("#fhoje").innerHTML = s.hoje.itens.length ? [...s.hoje.itens].reverse().map((e) => `<li class="row${e.done ? "" : " is-cut"}"><div><p class="row-title">${esc(e.text || "Foco sem nome")}</p>
-    <p class="row-meta"><span class="num">${esc(e.at)}</span><span class="num">${e.done ? `${e.min} min${e.extra ? ` · +${e.extra} além do plano` : ""}` : `${e.min} de ${e.plan} min · interrompido`}</span>${e.area ? `<span class="tag" style="color:${areaColor(e.area)}">${esc(e.area)}</span>` : ""}</p></div></li>`).join("")
+  if ($("#fhoje .fedit")) return; // editando um bloco: não apaga o formulário
+  $("#fhoje").innerHTML = s.hoje.itens.length ? [...s.hoje.itens].reverse().map((e) => `<li class="row${e.done ? "" : " is-cut"}" data-at="${esc(e.date)}T${esc(e.at)}"><div><p class="row-title">${esc(e.text || "Foco sem nome")}</p>
+    <p class="row-meta"><span class="num">${esc(e.at)}</span><span class="num">${e.done ? `${e.min} min${e.extra ? ` · +${e.extra} além do plano` : ""}` : `${e.min} de ${e.plan} min · interrompido`}</span>${e.area ? `<span class="tag" style="color:${areaColor(e.area)}">${esc(e.area)}</span>` : ""}</p></div>
+    <div class="frow-tools"><button type="button" class="btn btn-text btn-sm" data-fedit>Editar</button></div></li>`).join("")
     : `<li class="empty">Nenhum bloco hoje ainda.</li>`;
+}
+
+/* ---------- editar um bloco anotado ---------- */
+function editForm(e) {
+  const areas = `<option value="">Sem área</option>` + (state.cfg?.areas || []).map((a) => `<option value="${esc(a.id)}"${a.id === e.area ? " selected" : ""}>${esc(a.nome)}</option>`).join("");
+  return `<form class="fedit">
+    <label>Começou às <input name="at" type="time" value="${esc(e.at)}" required class="num"></label>
+    <label>Minutos <input name="min" type="number" min="1" max="240" value="${e.min}" required class="num"></label>
+    <label>Planejado <input name="plano" type="number" min="1" max="240" value="${e.plan}" required class="num"></label>
+    <label class="wide">No que foi <input name="tarefa" list="pomo-tasks" value="${esc(e.text || "")}" autocomplete="off"></label>
+    <label class="wide">Área <select name="area">${areas}</select></label>
+    <div class="fedit-act">
+      <button type="button" class="btn btn-text btn-sm btn-danger" data-fdel>Apagar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-fcancel>Cancelar</button>
+      <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+    </div></form>`;
+}
+async function saveBlock(url, body, btn, msg) {
+  btn.setAttribute("aria-busy", "true");
+  try { await api(url, body); toast(msg); $("#fhoje").innerHTML = ""; await loadFoco(); }
+  catch (err) { toast(err.message); }
+  finally { btn.removeAttribute("aria-busy"); }
+}
+function bindEdit() {
+  const list = $("#fhoje");
+  list.addEventListener("click", (ev) => {
+    const li = ev.target.closest("li[data-at]"); if (!li) return;
+    if (ev.target.closest("[data-fedit]")) {
+      list.querySelectorAll(".fedit").forEach((f) => f.remove());
+      const [date, at] = li.dataset.at.split("T");
+      const e = state.foco?.hoje?.itens.find((x) => x.date === date && x.at === at); if (!e) return;
+      li.insertAdjacentHTML("beforeend", editForm(e));
+      li.querySelector(".fedit [name=min]").focus();
+    } else if (ev.target.closest("[data-fcancel]")) {
+      li.querySelector(".fedit").remove(); renderStats();
+    } else if (ev.target.closest("[data-fdel]")) {
+      const b = ev.target.closest("[data-fdel]");
+      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Apagar mesmo?"; return; }
+      saveBlock("/api/foco/apagar", { de: li.dataset.at }, b, "Bloco apagado da nota.");
+    }
+  });
+  list.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const f = ev.target; const li = f.closest("li[data-at]");
+    const date = li.dataset.at.split("T")[0];
+    saveBlock("/api/foco/editar", { de: li.dataset.at, inicio: `${date}T${f.at.value}`, min: Number(f.min.value), plano: Number(f.plano.value), tarefa: f.tarefa.value, area: f.area.value },
+      f.querySelector("button[type=submit]"), "Bloco corrigido na nota.");
+  });
 }
 
 function renderPicker() {
@@ -230,6 +308,11 @@ export function bindFoco() {
     paint();
   });
   $("#pomo-plan").addEventListener("click", () => finish({ manual: true }));
+  $("#pomo-dur").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.dur) adjust(Number(b.dataset.dur)); else if (b.dataset.set) setDur(Number(b.dataset.set));
+  });
+  bindEdit();
   $("#pomo-add").addEventListener("toggle", () => { const f = $("#pomo-add-f"); if (!f.fim.value) f.fim.value = hm(new Date()); });
   $("#pomo-add-f").addEventListener("submit", async (e) => {
     e.preventDefault();

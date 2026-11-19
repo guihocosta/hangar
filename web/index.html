@@ -217,13 +217,20 @@
               <p class="pomo-cycle" id="pomo-cycle" aria-label="Ciclo"></p>
             </div>
           </div>
+          <div class="pomo-dur" id="pomo-dur" role="group" aria-label="Duração do foco">
+            <button type="button" class="btn btn-ghost btn-sm" data-dur="-5" aria-label="Cinco minutos a menos">−5</button>
+            <span class="pomo-dur-v num" id="pomo-dur-v" aria-live="polite"></span>
+            <button type="button" class="btn btn-ghost btn-sm" data-dur="5" aria-label="Cinco minutos a mais">+5</button>
+            <span class="pomo-presets" id="pomo-presets"></span>
+          </div>
           <form class="pomo-what" id="pomo-what">
-            <label for="pomo-task">No que vai focar</label>
+            <label for="pomo-task" id="pomo-task-l">No que vai focar</label>
             <div class="pomo-what-row">
               <input id="pomo-task" list="pomo-tasks" autocomplete="off" placeholder="Opcional: uma tarefa, card ou pendência">
               <datalist id="pomo-tasks"></datalist>
               <select id="pomo-area" aria-label="Área" data-areas-opt></select>
             </div>
+            <p class="muted small" id="pomo-task-h" hidden>Pode trocar com o relógio rodando: o bloco entra com o nome e a área que estiverem aqui ao concluir.</p>
           </form>
           <div class="pomo-actions">
             <button type="button" class="btn btn-primary" id="pomo-main">Começar <kbd>Espaço</kbd></button>
