@@ -56,6 +56,7 @@ DEFAULTS = {
         "meta_diaria": 8,  # blocos completos por dia
         "auto_pausa": True,  # a pausa começa sozinha quando o foco acaba
         "auto_foco": False,  # o foco seguinte começa sozinho quando a pausa acaba
+        "hora_extra": True,  # o foco segue contando depois do tempo até você concluir
         "som": True,
         "aviso": True,  # notificação do navegador
     },

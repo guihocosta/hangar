@@ -234,9 +234,20 @@
           <div class="pomo-actions">
             <button type="button" class="btn btn-primary" id="pomo-main">Começar <kbd>Espaço</kbd></button>
             <button type="button" class="btn btn-ghost" id="pomo-stop" hidden>Parar</button>
+            <button type="button" class="btn btn-ghost" id="pomo-plan" hidden>Contar só o plano</button>
             <button type="button" class="btn btn-text" id="pomo-skip" hidden>Pular</button>
           </div>
           <p class="muted small" id="pomo-status" role="status"></p>
+          <details class="pomo-add" id="pomo-add">
+            <summary>Anotar um foco feito fora do relógio</summary>
+            <form class="pomo-add-f" id="pomo-add-f">
+              <label>Minutos <input name="min" type="number" min="1" max="240" step="1" value="25" required class="num"></label>
+              <label>Terminou às <input name="fim" type="time" class="num"></label>
+              <label class="wide">No que foi <input name="tarefa" list="pomo-tasks" autocomplete="off" placeholder="Opcional"></label>
+              <label>Área <select name="area" id="pomo-add-area"></select></label>
+              <button class="btn btn-primary btn-sm" type="submit">Anotar</button>
+            </form>
+          </details>
         </section>
         <div class="stack">
           <dl class="stats foco-stats panel" id="foco-stats">
