@@ -65,6 +65,30 @@ export function candidates() {
 
 /* ---------- configuração ---------- */
 export const cfg = () => state.cfg;
+
+/* ---------- tema ---------- */
+// Cores-semente de cada tema; tokens.css deriva o resto (luminosidade fixa, croma com teto).
+export const TEMAS = {
+  cabine: { nome: "Cabine", fundo: "#09183b", estrutura: "#549de5", destaque: "#f98f2b" },
+  grafite: { nome: "Grafite", fundo: "#1b1b1b", estrutura: "#98adc4", destaque: "#e7b643" },
+  floresta: { nome: "Floresta", fundo: "#002313", estrutura: "#51bb9a", destaque: "#d8c65a" },
+  oceano: { nome: "Oceano", fundo: "#001f2f", estrutura: "#4fbec4", destaque: "#fc8e72" },
+  ameixa: { nome: "Ameixa", fundo: "#26102c", estrutura: "#a998dd", destaque: "#f98e8f" },
+  brasa: { nome: "Brasa", fundo: "#2a140c", estrutura: "#ca9971", destaque: "#fd7562" },
+};
+const HEX = /^#[0-9a-f]{6}$/i;
+/** As três sementes efetivas: as cores salvas quando válidas, senão as do tema (ou do Cabine). */
+export function themeSeeds(a = {}) {
+  const base = TEMAS[a.tema] || TEMAS.cabine;
+  const pick = (k) => (a.tema === "personalizado" && HEX.test(a[k] || "") ? a[k] : base[k]);
+  return { fundo: pick("fundo"), estrutura: pick("estrutura"), destaque: pick("destaque") };
+}
+/** Aplica as sementes na página e guarda no navegador para a próxima abertura não piscar. */
+export function applyTheme(seeds, persist = true) {
+  const r = document.documentElement.style;
+  for (const [k, v] of Object.entries(seeds)) r.setProperty(`--seed-${k}`, v);
+  if (persist) try { localStorage.setItem("hangar-tema", JSON.stringify(seeds)); } catch { /* sem storage: só pisca */ }
+}
 export function areaColor(id) {
   const i = (state.cfg?.areas || []).findIndex((a) => a.id === id);
   return i < 0 ? "var(--color-ink-2)" : `var(--list-${(i % 5) + 1})`;
