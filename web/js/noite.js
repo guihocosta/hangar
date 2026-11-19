@@ -122,7 +122,7 @@ function renderQueue() {
   }).join("")}</ul>`;
   q.innerHTML = group("Vence hoje", now) + group("Ficou para trás", late, true) + group("Amanhã", next) || `<p class="empty">Nada vence hoje nem ficou para trás. Encaixe uma pausa ou um hábito, ou aproveite a folga.</p>`;
   const hs = tt().habits; const inH = new Set(state.session.blocks.map((b) => b.habitId));
-  $("#habits").innerHTML = hs === null ? `<li class="empty">${tt().mode === "api" ? "A API do TickTick não mostra hábitos." : "Não consegui ler os hábitos agora."}</li>`
+  $("#habits").innerHTML = hs === null ? `<li class="empty">Não consegui ler os hábitos agora.</li>`
     : hs.length ? hs.map((h) => `<li class="row${h.done ? " is-done" : ""}" data-habit="${h.id}"><div><p class="row-title">${esc(h.name)}</p><p class="row-meta">${h.reminder ? `<span class="num">${h.reminder}</span>` : ""}<span>${h.done ? "Feito hoje" : "Pendente"}</span></p></div>
       <div class="tools">${h.done ? "" : `<button type="button" class="btn btn-ghost btn-sm" data-act="fit-habit" ${inH.has(h.id) ? "disabled" : ""}>${inH.has(h.id) ? "Na noite" : "Encaixar"}</button>
       <button type="button" class="btn btn-ghost btn-icon" data-act="check-habit" aria-label="Marcar ${esc(h.name)} como feito">${icon.check}</button>`}</div></li>`).join("")

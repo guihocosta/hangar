@@ -1,7 +1,7 @@
 """TickTick por dois caminhos, escolhidos sozinhos:
 
 - **Open API oficial** (`api.ticktick.com/open/v1`), quando há `HANGAR_TICKTICK_TOKEN` (hangar.env ou
-  ambiente). O token sai do login OAuth feito pela aba Ajustes ou é colado à mão. Não tem hábitos.
+  ambiente). O token sai do login OAuth feito pela aba Ajustes ou é colado à mão.
 - **Sessão do app desktop** (`ticktick.sessao`), o caminho antigo, quando não há token.
 
 O token nunca sai do servidor. As leituras independentes rodam em paralelo.
@@ -105,14 +105,28 @@ def _api_fetch():
         return [_task(t, True) for t in rows or [] if isinstance(t, dict) and t.get("id")]
 
     with ThreadPoolExecutor(6) as ex:
-        f_done = ex.submit(completed)
+        f_done, f_hab = ex.submit(completed), ex.submit(_api_habits)
         lists = list(ex.map(data, [p["id"] for p in projects]))
     inbox_ids = {t.get("projectId") for t in lists[0]}
     for p in projects:  # o inbox real tem id "inboxNNN"; os cards apontam para ele
         if p["id"] == "inbox" and inbox_ids:
             p["id"] = next(iter(inbox_ids))
     tasks = [_task(t) for ts in lists for t in ts if t.get("status", 0) == 0]
-    return {"projects": projects, "tasks": tasks + f_done.result(), "habits": None, "mode": "api"}
+    return {"projects": projects, "tasks": tasks + f_done.result(), "habits": f_hab.result(), "mode": "api"}
+
+
+def _api_habits():
+    try:
+        raw_h = [h for h in op("GET", "/habit") or [] if h.get("status", 0) == 0]
+        today = int(date.today().strftime("%Y%m%d"))
+        docs = op("GET", "/habit/checkins?" + urllib.parse.urlencode(
+            {"habitIds": ",".join(h["id"] for h in raw_h), "from": today, "to": today})) if raw_h else []
+    except SourceError:
+        return None
+    done = {d.get("habitId") for d in docs or [] for c in d.get("checkins") or []
+            if c.get("stamp") == today and c.get("status") == 2}
+    return [{"id": h["id"], "name": h["name"], "reminder": (h.get("reminders") or [None])[0],
+             "done": h["id"] in done} for h in raw_h]
 
 
 def _api_complete(body):
@@ -245,10 +259,12 @@ def postpone_task(body):
 
 
 def checkin_habit(body):
-    if mode() == "api":
-        raise SourceError("A Open API do TickTick não tem hábitos; faça o check-in no app.")
     now = tt_now()
     stamp = int(date.today().strftime("%Y%m%d"))
+    if mode() == "api":
+        op("POST", f"/habit/{body['habitId']}/checkin",
+           {"stamp": stamp, "time": now, "opTime": now, "value": 1.0, "goal": 1.0, "status": 2})
+        return
     tt("POST", "/habitCheckins/batch", {"add": [{
         "id": secrets.token_hex(12), "habitId": body["habitId"], "checkinStamp": stamp,
         "checkinTime": now, "opTime": now, "value": 1.0, "goal": 1.0, "status": 2}],

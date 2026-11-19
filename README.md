@@ -26,7 +26,7 @@ Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Esp
   - **Windows**: PowerShell (já vem); use `hangar.cmd` / `hangar.ps1`;
   - **Linux ou macOS**: `curl` e `xdg-open`/`open`; use o script `hangar`.
 - Opcionais, conforme as fontes que você ligar:
-  - [TickTick](https://ticktick.com): pela **Open API oficial** (crie um app em [developer.ticktick.com](https://developer.ticktick.com) com Redirect URI `http://127.0.0.1:8023/oauth/ticktick`, cole Client ID e Secret em Ajustes, salve e clique em **Conectar TickTick**; ou cole um access token pronto). Sem token, cai para a sessão do app desktop. A Open API não tem hábitos;
+  - [TickTick](https://ticktick.com): pela **Open API oficial** (crie um app em [developer.ticktick.com](https://developer.ticktick.com) com Redirect URI `http://127.0.0.1:8023/oauth/ticktick`, cole Client ID e Secret em Ajustes, salve e clique em **Conectar TickTick**; ou cole um access token pronto). Sem token, cai para a sessão do app desktop;
   - [`gh`](https://cli.github.com) logado (`gh auth login`);
   - um GLPI com a API REST ligada (App-Token e token de usuário);
   - [Claude Code](https://claude.com/claude-code) (`claude` no PATH).
@@ -80,7 +80,7 @@ Os tokens do GLPI podem vir de `HANGAR_GLPI_URL`, `HANGAR_GLPI_APP_TOKEN` e `HAN
 
 - `server.py` escuta só em 127.0.0.1 e recusa escrita sem o cabeçalho `X-Hangar` ou com outro Host/Origin.
 - **Rápido por desenho:** cada fonte (`hub/store.py`) fica em memória e num snapshot em disco. A página recebe o último snapshot na hora, e o servidor busca de novo em segundo plano quando ele passa da validade (TickTick 90 s, GitHub 5 min, GLPI 15 min).
-- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia e (só pela sessão do app) check-in de hábito.
+- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia e check-in de hábito.
 - **GitHub** (`hub/github.py`): `gh api graphql`, só leitura. Status vem do campo `Status` do Project; a sprint é qualquer campo de iteração.
 - **GLPI** (`hub/glpi.py`): só `GET /search/Ticket`. Grupos com o prefixo configurado (ex.: `Squad `) viram as equipes do gráfico.
 - **Vault** (`hub/vault.py`): lê e escreve as notas de pendências, ideias e a pauta do dia (`AAAA-MM-DD - Pauta do dia.md`). As notas continuam editáveis à mão.
