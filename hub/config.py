@@ -38,6 +38,19 @@ DEFAULTS = {
         "ideias": "Hangar/Ideias e melhorias.md",
         "conversas": "Hangar/Pautas",
         "registro": "",  # nota-índice onde cada pauta nova ganha um link (opcional)
+        "foco": "Hangar/Foco",  # pasta das notas mensais do pomodoro
+    },
+    "foco": {  # pomodoro; tempos em minutos
+        "ativo": True,
+        "minutos": 25,
+        "pausa_curta": 5,
+        "pausa_longa": 15,
+        "ciclos": 4,  # blocos de foco até a pausa longa
+        "meta_diaria": 8,  # blocos completos por dia
+        "auto_pausa": True,  # a pausa começa sozinha quando o foco acaba
+        "auto_foco": False,  # o foco seguinte começa sozinho quando a pausa acaba
+        "som": True,
+        "aviso": True,  # notificação do navegador
     },
     "ticktick": {"ativo": True, "sessao": "~/.config/ticktick/config.json"},
     "trabalho": {

@@ -5,9 +5,10 @@ import { renderAgenda, bindAgenda } from "./agenda.js";
 import { renderTrabalho, bindTrabalho } from "./trabalho.js";
 import { renderIdeias, bindIdeias } from "./ideias.js";
 import { renderAjustes, bindAjustes } from "./ajustes.js";
+import { renderFoco, bindFoco, loadFoco } from "./foco.js";
 
-const ALL_VIEWS = { hoje: renderHoje, noite: renderNoite, agenda: renderAgenda, trabalho: renderTrabalho, ideias: renderIdeias, ajustes: renderAjustes };
-const ORDER = ["hoje", "noite", "agenda", "trabalho", "ideias", "ajustes"];
+const ALL_VIEWS = { hoje: renderHoje, noite: renderNoite, agenda: renderAgenda, trabalho: renderTrabalho, ideias: renderIdeias, foco: renderFoco, ajustes: renderAjustes };
+const ORDER = ["hoje", "noite", "agenda", "trabalho", "ideias", "foco", "ajustes"];
 let VIEWS = { ...ALL_VIEWS };
 const LABEL = { ticktick: "TickTick", github: "GitHub", glpi: "GLPI", vault: "Vault" };
 
@@ -23,7 +24,7 @@ function applyConfig() {
   for (const k of Object.keys(LABEL)) if (k !== "vault") { if (on[k]) state.src[k] ??= null; else delete state.src[k]; }
   VIEWS = Object.fromEntries(Object.entries(ALL_VIEWS).filter(([k]) =>
     !(k === "noite" && (!c.noite.ativo || !c.ticktick.ativo)) && !(k === "agenda" && !c.ticktick.ativo)
-    && !(k === "trabalho" && !c.trabalho.ativo && !c.glpi.ativo)));
+    && !(k === "trabalho" && !c.trabalho.ativo && !c.glpi.ativo) && !(k === "foco" && !c.foco?.ativo)));
   ORDER.forEach((v) => { const a = $(`.nav a[data-view="${v}"]`); a.hidden = !VIEWS[v]; });
   let n = 0; ORDER.filter((v) => VIEWS[v]).forEach((v) => { $(`.nav a[data-view="${v}"] kbd`).textContent = ++n; });
   $$("[data-needs]").forEach((el) => { el.hidden = !on[el.dataset.needs]; });
@@ -73,7 +74,7 @@ async function loadVault() {
   render();
 }
 async function loadAll(force = false) {
-  await Promise.all([...Object.keys(state.src).map((k) => loadSrc(k, force)), loadVault()]);
+  await Promise.all([...Object.keys(state.src).map((k) => loadSrc(k, force)), loadVault(), loadFoco()]);
   // fonte velha: o servidor já está buscando em segundo plano; volta para pegar o resultado
   clearTimeout(followUp);
   const pending = Object.values(state.src).some((p) => p?.refreshing) || Object.values(state.vault?.jobs || {}).some((j) => j.state === "running");
@@ -97,7 +98,8 @@ function route() {
   state.view = VIEWS[v] ? v : "hoje";
   $$(".view").forEach((el) => { el.hidden = el.dataset.view !== state.view; });
   $$(".nav a").forEach((a) => { if (a.dataset.view === state.view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  document.title = state.view === "hoje" ? "Hangar" : `${$(`.nav a[data-view="${state.view}"] span`).textContent} · Hangar`;
+  state.baseTitle = state.view === "hoje" ? "Hangar" : `${$(`.nav a[data-view="${state.view}"] span`).textContent} · Hangar`;
+  document.title = state.baseTitle;
   render();
 }
 
@@ -136,6 +138,7 @@ function bind() {
   bindAgenda();
   bindTrabalho();
   bindAjustes({ save: saveConfig });
+  bindFoco();
   bindIdeias({
     move: (id, stage, btn) => busy(btn, async () => { await api("/api/ideia/move", { id, stage }); await loadVault(); }),
     ask: (foco, btn) => busy(btn, async () => { await api("/api/ideias/gerar", { foco }); await loadAll(); }),
