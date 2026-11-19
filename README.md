@@ -16,7 +16,7 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |
 | **Foco** | Pomodoro configurável (tempos, ciclos, meta diária, som, notificação) e as estatísticas: hoje, semana, sequência, 28 dias e por área |
-| **Ajustes** | Toda a configuração, sem editar arquivo |
+| **Ajustes** | Toda a configuração, sem editar arquivo, inclusive as cores (temas prontos ou três cores suas) e quais abas aparecem na barra lateral |
 
 Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Espaço` começa/pausa o foco.
 

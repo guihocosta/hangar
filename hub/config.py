@@ -31,6 +31,13 @@ DEFAULTS = {
         {"id": "estudo", "nome": "Estudo"},
         {"id": "pessoal", "nome": "Pessoal"},
     ],
+    "aparencia": {
+        "tema": "cabine",  # um dos temas prontos (web/js/core.js → TEMAS) ou "personalizado"
+        "fundo": "",  # cores-semente em hex; vazio = as do tema
+        "estrutura": "",
+        "destaque": "",
+        "abas_ocultas": [],  # abas fora da barra lateral (ex.: ["ideias"]); Ajustes nunca some
+    },
     "noite": {"ativo": True, "titulo": "A noite", "fim": "23:00"},
     "vault": {
         "caminho": "",  # pasta do vault do Obsidian (ou qualquer pasta de markdown)

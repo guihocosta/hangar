@@ -9,6 +9,7 @@
   --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
   --color-paper: oklch(15.5% 0.032 264); --color-paper-2: oklch(19.5% 0.042 263); --color-paper-3: oklch(24% 0.052 262);
   --color-ink: oklch(96% 0.008 250); --color-ink-2: oklch(87% 0.025 252); --color-muted: oklch(74% 0.035 256);
+  --color-side: oklch(13.5% 0.03 264); --color-lane: oklch(17% 0.035 264);
   --color-rule: oklch(30% 0.05 262); --color-rule-2: oklch(42% 0.06 260);
   --color-field: oklch(68% 0.13 250); --color-field-ink: oklch(16% 0.04 262);
   --list-1: oklch(76% 0.09 190); --list-2: oklch(80% 0.06 300); --list-3: oklch(72% 0.12 248); --list-4: oklch(86% 0.02 250); --list-5: oklch(82% 0.11 92);
@@ -16,4 +17,28 @@
   --font-display: "Oxanium", ui-sans-serif, system-ui, sans-serif; --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-body);
   --radius-card: 6px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
   --tracking-display: -0.02em;
+}
+
+/* Tema: três cores-semente (fundo, estrutura, destaque) geram a paleta inteira. A luminosidade de cada
+ * token fica fixa e o croma tem teto, então qualquer cor escolhida em Ajustes mantém o contraste.
+ * As sementes vêm do tema salvo (core.js → applyTheme); sem suporte a cor relativa, fica a paleta acima. */
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --seed-fundo: #09183b; --seed-estrutura: #549de5; --seed-destaque: #f98f2b;
+    --color-side: oklch(from var(--seed-fundo) 13.5% min(c, 0.03) h);
+    --color-paper: oklch(from var(--seed-fundo) 15.5% min(c, 0.032) h);
+    --color-lane: oklch(from var(--seed-fundo) 17% min(c, 0.035) h);
+    --color-paper-2: oklch(from var(--seed-fundo) 19.5% min(c, 0.042) h);
+    --color-paper-3: oklch(from var(--seed-fundo) 24% min(c, 0.052) h);
+    --color-rule: oklch(from var(--seed-fundo) 30% min(c, 0.05) h);
+    --color-rule-2: oklch(from var(--seed-fundo) 42% min(c, 0.06) h);
+    --color-ink: oklch(from var(--seed-fundo) 96% min(c, 0.008) h);
+    --color-ink-2: oklch(from var(--seed-fundo) 87% min(c, 0.025) h);
+    --color-muted: oklch(from var(--seed-fundo) 74% min(c, 0.035) h);
+    --color-field: oklch(from var(--seed-estrutura) clamp(0.64, l, 0.78) min(c, 0.16) h);
+    --color-field-ink: oklch(from var(--seed-estrutura) 16% min(c, 0.04) h);
+    --color-accent: oklch(from var(--seed-destaque) clamp(0.7, l, 0.86) min(c, 0.2) h);
+    --color-accent-ink: oklch(from var(--seed-destaque) 19% min(c, 0.04) h);
+    --color-focus: oklch(from var(--seed-destaque) calc(clamp(0.7, l, 0.86) + 0.07) min(c, 0.18) h);
+  }
 }
