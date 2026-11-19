@@ -1,5 +1,6 @@
 """GitHub pelo gh CLI, só leitura: cards atribuídos a mim (com os campos do Project) e PRs."""
 import json
+import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
@@ -24,7 +25,7 @@ _PRS = """query($q:String!){search(query:$q,type:ISSUE,first:40){nodes{... on Pu
 def _gql(query, q):
     try:
         out = subprocess.run(["gh", "api", "graphql", "-f", f"q={q}", "-f", f"query={query}"],
-                             capture_output=True, text=True, timeout=40)
+                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40)
     except FileNotFoundError as e:
         raise SourceError("O gh não está instalado.") from e
     except subprocess.TimeoutExpired as e:
@@ -54,9 +55,13 @@ def _card(n, project):
                 fields["SprintDays"] = f.get("duration")
             else:
                 fields[name] = f.get("name")
-    title = n["title"]
+    title = n["title"].strip()
     tag = None
-    if "—" in title:
+    lead = re.match(r"^((?:\s*\[[^\]]+\])+)\s*(.*)$", title)
+    if lead and lead.group(2):  # "[Dados] [ETL] título" → tag "Dados · ETL"
+        tag = " · ".join(re.findall(r"\[([^\]]+)\]", lead.group(1)))
+        title = lead.group(2)
+    elif "—" in title:
         head, title = title.split("—", 1)
         tag = head.replace("[TASK]", "").replace("[BUG]", "").strip() or None
         title = title.strip()
