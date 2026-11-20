@@ -11,7 +11,7 @@ from datetime import date
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
-from hub import claude, config, paths, ticktick, vault
+from hub import claude, config, foco, paths, ticktick, vault
 from hub.sources import ALL, TICKTICK, enabled
 from hub.store import SourceError
 
@@ -63,6 +63,9 @@ POSTS = {
     "/api/ideia/add": vault.ideia_add,
     "/api/ideia/move": vault.ideia_move,
     "/api/pauta/toggle": vault.pauta_toggle,
+    "/api/foco/registrar": foco.registrar,
+    "/api/foco/editar": foco.editar,
+    "/api/foco/apagar": foco.apagar,
     "/api/pauta/gerar": lambda b: claude.start("pauta", claude.gerar_pauta),
     "/api/config": _save_config,
     "/api/ideias/gerar": lambda b: claude.start("ideias", claude.gerar_ideias, b.get("foco")),
@@ -168,6 +171,12 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json(200, _vault_state())
             except OSError as e:
                 self._json(502, {"error": f"Não consegui ler o vault: {e}"})
+            return
+        if path == "/api/foco":
+            try:
+                self._json(200, foco.stats())
+            except OSError as e:
+                self._json(502, {"error": f"Não consegui ler as notas de foco: {e}"})
             return
         if path == "/api/session":
             try:

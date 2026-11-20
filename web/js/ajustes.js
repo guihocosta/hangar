@@ -20,6 +20,7 @@ const SCHEMA = [
     ["vault.ideias", "Nota das ideias", "text", "Relativo ao vault."],
     ["vault.conversas", "Pasta das pautas", "text", "Onde cada pauta do dia vira uma nota."],
     ["vault.registro", "Nota-índice (opcional)", "text", "Cada pauta nova ganha um link aqui, se a nota existir."],
+    ["vault.foco", "Pasta do foco", "text", "Uma nota por mês (AAAA-MM.md) com uma linha por bloco de foco."],
   ]],
   ["TickTick e noite", [
     ["ticktick.ativo", "Ler o TickTick", "bool", "Pela Open API oficial quando há token; senão, pela sessão do app desktop."],
@@ -65,6 +66,19 @@ const SCHEMA = [
     ["claude.notas_contexto", "Notas extras no contexto", "lines", "Globs de notas (relativos ao vault ou absolutos) com lembretes e regras."],
     ["claude.contexto_ideias", "Contexto para as ideias", "textarea", "O que vale saber ao sugerir melhorias (stack, limites, ferramentas)."],
     ["claude.notas_ideias", "Notas de referência das ideias", "lines", "Globs de notas lidas só ao sugerir ideias."],
+  ]],
+  ["Foco (pomodoro)", [
+    ["foco.ativo", "Mostrar a aba Foco", "bool", ""],
+    ["foco.minutos", "Minutos de foco", "number", "Um bloco. O clássico é 25."],
+    ["foco.pausa_curta", "Pausa curta (min)", "number", ""],
+    ["foco.pausa_longa", "Pausa longa (min)", "number", ""],
+    ["foco.ciclos", "Focos até a pausa longa", "number", ""],
+    ["foco.meta_diaria", "Meta de blocos por dia", "number", "0 = sem meta."],
+    ["foco.hora_extra", "Seguir contando depois do tempo", "bool", "Quando o foco acaba, o relógio continua (+MM:SS) até você concluir, e o bloco entra com os minutos reais. Desligado, o foco fecha sozinho no tempo marcado."],
+    ["foco.auto_pausa", "Começar a pausa sozinha", "bool", "Quando o foco acaba (ou quando você conclui o tempo extra)."],
+    ["foco.auto_foco", "Começar o foco seguinte sozinho", "bool", "Quando a pausa acaba."],
+    ["foco.som", "Tocar um som no fim", "bool", ""],
+    ["foco.aviso", "Notificação do navegador", "bool", "Só aparece com a aba em segundo plano. O navegador pede permissão no primeiro Começar."],
   ]],
   ["Ideias", [
     ["ideias.areas", "Áreas das ideias", "lines", ""],
@@ -125,7 +139,7 @@ function field([path, label, type, help], cfg, locked, secrets) {
   return `<div class="cfg-f"><label for="${id}">${esc(label)}</label>${input}${helpEl}</div>`;
 }
 
-const ABAS = [["hoje", "Hoje"], ["noite", "Noite"], ["agenda", "Agenda"], ["trabalho", "Trabalho"], ["ideias", "Ideias"]];
+const ABAS = [["hoje", "Hoje"], ["noite", "Noite"], ["agenda", "Agenda"], ["trabalho", "Trabalho"], ["ideias", "Ideias"], ["foco", "Foco"]];
 const CORES = [["fundo", "Fundo"], ["estrutura", "Estrutura"], ["destaque", "Destaque"]];
 
 function themeField(id, a, helpEl) {

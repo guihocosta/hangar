@@ -21,7 +21,8 @@
       <a href="#agenda" data-view="agenda"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4"/></svg><span>Agenda</span><kbd>3</kbd></a>
       <a href="#trabalho" data-view="trabalho"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="4" height="13" rx="1.2"/><rect x="8" y="3.5" width="4" height="8" rx="1.2"/><rect x="13.5" y="3.5" width="4" height="10.5" rx="1.2"/></svg><span data-cfg="trabalho.nome">Trabalho</span><kbd>4</kbd></a>
       <a href="#ideias" data-view="ideias"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 14.5h5M8 17h4M10 2.5a5 5 0 0 0-3 9c.6.5 1 1.2 1 2h4c0-.8.4-1.5 1-2a5 5 0 0 0-3-9Z"/></svg><span>Ideias</span><kbd>5</kbd></a>
-      <a href="#ajustes" data-view="ajustes"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h8M15 5.5h2M3 10h2M9 10h8M3 14.5h6M13 14.5h4"/><circle cx="13" cy="5.5" r="2"/><circle cx="7" cy="10" r="2"/><circle cx="11" cy="14.5" r="2"/></svg><span>Ajustes</span><kbd>6</kbd></a>
+      <a href="#foco" data-view="foco"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="11" r="6.5"/><path d="M10 7.5V11l2.2 1.6M8 2.5h4M15.2 5.3l1.3-1.3"/></svg><span>Foco</span><kbd>6</kbd></a>
+      <a href="#ajustes" data-view="ajustes"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h8M15 5.5h2M3 10h2M9 10h8M3 14.5h6M13 14.5h4"/><circle cx="13" cy="5.5" r="2"/><circle cx="7" cy="10" r="2"/><circle cx="11" cy="14.5" r="2"/></svg><span>Ajustes</span><kbd>7</kbd></a>
     </nav>
     <div class="side-foot">
       <ul class="sources" id="sources" aria-label="Fontes"></ul>
@@ -196,6 +197,82 @@
         </form>
       </details>
       <div class="board" id="board"></div>
+    </section>
+
+    <!-- FOCO -->
+    <section class="view" data-view="foco" aria-labelledby="foco-h" hidden>
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Pomodoro</p>
+          <h1 id="foco-h" class="display">Foco</h1>
+        </div>
+        <div class="head-tools"><p class="muted" id="foco-file"></p><a class="btn btn-text btn-sm" href="#ajustes">Ajustar tempos</a></div>
+      </header>
+      <div class="foco">
+        <section class="pomo panel" aria-labelledby="pomo-phase">
+          <div class="pomo-dial">
+            <svg class="pomo-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="pomo-track" cx="60" cy="60" r="54"/><circle class="pomo-arc" id="pomo-arc" cx="60" cy="60" r="54" pathLength="1000"/></svg>
+            <div class="pomo-read">
+              <p class="pomo-phase" id="pomo-phase">Foco</p>
+              <p class="pomo-time num" id="pomo-time" role="timer" aria-live="off">25:00</p>
+              <p class="pomo-cycle" id="pomo-cycle" aria-label="Ciclo"></p>
+            </div>
+          </div>
+          <div class="pomo-dur" id="pomo-dur" role="group" aria-label="Duração do foco">
+            <button type="button" class="btn btn-ghost btn-sm" data-dur="-5" aria-label="Cinco minutos a menos">−5</button>
+            <span class="pomo-dur-v num" id="pomo-dur-v" aria-live="polite"></span>
+            <button type="button" class="btn btn-ghost btn-sm" data-dur="5" aria-label="Cinco minutos a mais">+5</button>
+            <span class="pomo-presets" id="pomo-presets"></span>
+          </div>
+          <form class="pomo-what" id="pomo-what">
+            <label for="pomo-task" id="pomo-task-l">No que vai focar</label>
+            <div class="pomo-what-row">
+              <input id="pomo-task" list="pomo-tasks" autocomplete="off" placeholder="Opcional: uma tarefa, card ou pendência">
+              <datalist id="pomo-tasks"></datalist>
+              <select id="pomo-area" aria-label="Área" data-areas-opt></select>
+            </div>
+            <p class="muted small" id="pomo-task-h" hidden>Pode trocar com o relógio rodando: o bloco entra com o nome e a área que estiverem aqui ao concluir.</p>
+          </form>
+          <div class="pomo-actions">
+            <button type="button" class="btn btn-primary" id="pomo-main">Começar <kbd>Espaço</kbd></button>
+            <button type="button" class="btn btn-ghost" id="pomo-stop" hidden>Parar</button>
+            <button type="button" class="btn btn-ghost" id="pomo-plan" hidden>Contar só o plano</button>
+            <button type="button" class="btn btn-text" id="pomo-skip" hidden>Pular</button>
+          </div>
+          <p class="muted small" id="pomo-status" role="status"></p>
+          <details class="pomo-add" id="pomo-add">
+            <summary>Anotar um foco feito fora do relógio</summary>
+            <form class="pomo-add-f" id="pomo-add-f">
+              <label>Minutos <input name="min" type="number" min="1" max="240" step="1" value="25" required class="num"></label>
+              <label>Terminou às <input name="fim" type="time" class="num"></label>
+              <label class="wide">No que foi <input name="tarefa" list="pomo-tasks" autocomplete="off" placeholder="Opcional"></label>
+              <label>Área <select name="area" id="pomo-add-area"></select></label>
+              <button class="btn btn-primary btn-sm" type="submit">Anotar</button>
+            </form>
+          </details>
+        </section>
+        <div class="stack">
+          <dl class="stats foco-stats panel" id="foco-stats">
+            <div><dt>Hoje</dt><dd class="num" id="fs-hoje">–</dd></div>
+            <div><dt>Minutos hoje</dt><dd class="num" id="fs-min">–</dd></div>
+            <div><dt>Na semana</dt><dd class="num" id="fs-semana">–</dd></div>
+            <div><dt>Sequência</dt><dd class="num" id="fs-seq">–</dd></div>
+          </dl>
+          <section class="panel" aria-labelledby="h-fserie">
+            <h2 id="h-fserie">Minutos de foco por dia <span class="count">28 dias</span></h2>
+            <div class="fbars" id="fbars" role="img"></div>
+            <details class="ftable tbl"><summary>Ver como tabela</summary><div id="ftable"></div></details>
+          </section>
+          <section class="panel" aria-labelledby="h-fareas">
+            <h2 id="h-fareas">Por área <span class="count">28 dias</span></h2>
+            <div class="hbars" id="fareas"></div>
+          </section>
+          <section class="panel" aria-labelledby="h-fhoje">
+            <h2 id="h-fhoje">Blocos de hoje <span class="count" id="c-fhoje"></span></h2>
+            <ul class="rows" id="fhoje"></ul>
+          </section>
+        </div>
+      </div>
     </section>
 
     <!-- AJUSTES -->
