@@ -1,12 +1,14 @@
 """Registro das fontes com o tempo de validade de cada uma."""
-from . import config, github, glpi, ticktick
+from . import config, gcal, github, glpi, ticktick
 from .store import Source
 
 TICKTICK = Source("ticktick", ticktick.fetch, ttl=90)
 GITHUB = Source("github", github.fetch, ttl=300)
 GLPI = Source("glpi", glpi.fetch, ttl=900)
-ALL = {"ticktick": TICKTICK, "github": GITHUB, "glpi": GLPI}
-_SWITCH = {"ticktick": ("ticktick", "ativo"), "github": ("trabalho", "ativo"), "glpi": ("glpi", "ativo")}
+GCAL = Source("gcal", gcal.fetch, ttl=300)
+ALL = {"ticktick": TICKTICK, "github": GITHUB, "glpi": GLPI, "gcal": GCAL}
+_SWITCH = {"ticktick": ("ticktick", "ativo"), "github": ("trabalho", "ativo"), "glpi": ("glpi", "ativo"),
+           "gcal": ("google", "ativo")}
 
 
 def enabled():

@@ -1,4 +1,4 @@
-// Aba Ajustes: edita o config.json e os segredos (GLPI, TickTick) (que nunca voltam para a página).
+// Aba Ajustes: edita o config.json e os segredos (GLPI, TickTick, Google) (que nunca voltam para a página).
 import { $, $$, state, esc, TEMAS, themeSeeds, applyTheme } from "./core.js";
 
 // tipos: text, textarea, number, bool, time, lines (uma por linha), areas (um nome por linha),
@@ -35,6 +35,14 @@ const SCHEMA = [
     ["noite.ativo", "Mostrar a aba Noite", "bool", ""],
     ["noite.titulo", "Título da noite", "text", ""],
     ["noite.fim", "A noite acaba às", "time", ""],
+  ]],
+  ["Google Agenda", [
+    ["google.ativo", "Ler o Google Agenda", "bool", "Só leitura: os compromissos entram na Hoje, na Agenda, na Noite e na pauta."],
+    ["secret:HANGAR_GOOGLE_CLIENT_ID", "Client ID", "secret", "console.cloud.google.com → um projeto → ative a Google Calendar API → Tela de consentimento (público externo, com você como usuário de teste) → Credenciais → ID do cliente OAuth do tipo App para computador."],
+    ["secret:HANGAR_GOOGLE_CLIENT_SECRET", "Client Secret", "secret", "Salve os dois e clique em Conectar Google Agenda logo abaixo."],
+    ["oauth:google", "Conectar Google Agenda", "oauth", "Abre o login do Google e grava o refresh token no hangar.env. Com o app em modo Teste, o Google derruba o login a cada 7 dias; publique o app (Em produção) para não vencer. Vai aparecer o aviso de app não verificado: é o seu próprio app."],
+    ["google.calendarios", "Calendários", "gcal-cals", "Nenhum marcado = os que estão visíveis no Google Agenda."],
+    ["google.dias", "Dias para frente", "number", "Quantos dias de compromissos entram (a janela começa uma semana atrás)."],
   ]],
   ["Trabalho no GitHub", [
     ["trabalho.ativo", "Ler cards e PRs do GitHub", "bool", "Usa o gh CLI já logado (gh auth login)."],
@@ -128,9 +136,11 @@ function field([path, label, type, help], cfg, locked, secrets) {
     return `<fieldset class="cfg-f cfg-abas"><legend>${esc(label)}</legend><div class="cfg-checks">${boxes}</div>${helpEl}</fieldset>`;
   }
   if (type === "oauth") {
-    const ok = secrets.HANGAR_TICKTICK_TOKEN;
-    return `<div class="cfg-f"><a class="btn btn-ghost" id="${id}" href="/oauth/ticktick/start">${esc(label)}</a>${ok ? ` <span class="muted small">token já definido</span>` : ""}${helpEl}</div>`;
+    const k = path.slice(6);
+    const ok = secrets[{ ticktick: "HANGAR_TICKTICK_TOKEN", google: "HANGAR_GOOGLE_REFRESH_TOKEN" }[k]];
+    return `<div class="cfg-f"><a class="btn btn-ghost" id="${id}" href="/oauth/${k}/start">${esc(label)}</a>${ok ? ` <span class="muted small">já conectado</span>` : ""}${helpEl}</div>`;
   }
+  if (type === "gcal-cals") return `<fieldset class="cfg-f cfg-abas"><legend>${esc(label)}</legend><div class="cfg-checks" id="gcal-cals">${gcalBoxes()}</div>${helpEl}</fieldset>`;
   if (type === "secret") {
     const key = path.slice(7); const has = secrets[key];
     return `<div class="cfg-f"><label for="${id}">${esc(label)}</label>
@@ -141,6 +151,12 @@ function field([path, label, type, help], cfg, locked, secrets) {
     ? `<textarea id="${id}" rows="${type === "textarea" ? 3 : 4}" data-path="${path}" data-type="${type}"${dis}${desc}>${v}</textarea>`
     : `<input id="${id}" type="${type === "number" ? "number" : type === "time" ? "time" : "text"}" value="${v}" data-path="${path}" data-type="${type}" autocomplete="off"${dis}${desc}>`;
   return `<div class="cfg-f"><label for="${id}">${esc(label)}</label>${input}${helpEl}</div>`;
+}
+
+function gcalBoxes() {
+  const cals = state.src.gcal?.data?.calendars;
+  if (!cals) return `<p class="muted small" data-empty>Ligue, conecte e sincronize para escolher os calendários.</p>`;
+  return cals.map((c) => `<label><input type="checkbox" data-gcal="${esc(c.id)}"${c.on ? " checked" : ""}> ${esc(c.name)}</label>`).join("");
 }
 
 const ABAS = [["hoje", "Hoje"], ["noite", "Noite"], ["agenda", "Agenda"], ["trabalho", "Trabalho"], ["ideias", "Ideias"], ["foco", "Foco"]];
@@ -172,7 +188,11 @@ function previewTheme() {
 
 export function renderAjustes() {
   const c = state.cfgInfo; if (!c) return;
-  if ($("#cfg-fields").dataset.ready) { previewTheme(); return; } // não apaga o que está sendo digitado
+  if ($("#cfg-fields").dataset.ready) { // não apaga o que está sendo digitado
+    previewTheme();
+    if ($("#gcal-cals [data-empty]") && state.src.gcal?.data) $("#gcal-cals").innerHTML = gcalBoxes();
+    return;
+  }
   $("#cfg-fields").dataset.ready = "1";
   $("#cfg-first").hidden = c.exists;
   $("#cfg-file").textContent = c.file;
@@ -198,6 +218,8 @@ export function bindAjustes({ save }) {
     for (const el of $("#cfg-form").querySelectorAll("[data-path]:not(:disabled)")) set(cfg, el.dataset.path, parse(el.dataset.type, el.value, el.checked));
     for (const el of $("#cfg-form").querySelectorAll("[data-secret]")) if (el.value.trim()) secrets[el.dataset.secret] = el.value.trim();
     set(cfg, "aparencia.abas_ocultas", $$("#cfg-form [data-aba]").filter((el) => !el.checked).map((el) => el.dataset.aba));
+    const cals = $$("#cfg-form [data-gcal]");
+    if (cals.length) set(cfg, "google.calendarios", cals.filter((el) => el.checked).map((el) => el.dataset.gcal));
     save({ config: cfg, secrets }, e.submitter).then((ok) => {
       if (!ok) return;
       $("#cfg-fields").dataset.ready = "";

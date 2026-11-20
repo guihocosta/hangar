@@ -5,7 +5,7 @@
 - Qualquer chave pode ser sobrescrita por ambiente: `HANGAR_<SEÇÃO>_<CHAVE>` em maiúsculas
   (ex.: `HANGAR_VAULT_CAMINHO`, `HANGAR_TRABALHO_GITHUB_ORG`). Listas e objetos vão em JSON.
   Uma chave vinda do ambiente aparece travada na página.
-- Segredos (tokens do GLPI e do TickTick) ficam só no ambiente ou em `~/.config/hangar/hangar.env` (0600),
+- Segredos (tokens do GLPI, do TickTick e do Google) ficam só no ambiente ou em `~/.config/hangar/hangar.env` (0600),
   nunca no config.json e nunca voltam para o navegador.
 """
 import copy
@@ -67,6 +67,11 @@ DEFAULTS = {
         "media_dias": 7,  # prazo em até N dias: pelo menos média
         "alta_dias": 2,  # prazo em até N dias (ou atrasada): alta
     },
+    "google": {  # Google Agenda, só leitura
+        "ativo": False,
+        "calendarios": [],  # ids dos calendários lidos; vazio = os marcados no Google Agenda
+        "dias": 60,  # quantos dias para frente entram (a janela começa uma semana atrás)
+    },
     "trabalho": {
         "ativo": False,
         "nome": "Trabalho",
@@ -107,7 +112,8 @@ DEFAULTS = {
 }
 
 SECRET_KEYS = ("HANGAR_GLPI_URL", "HANGAR_GLPI_APP_TOKEN", "HANGAR_GLPI_USER_TOKEN",
-               "HANGAR_TICKTICK_CLIENT_ID", "HANGAR_TICKTICK_CLIENT_SECRET", "HANGAR_TICKTICK_TOKEN")
+               "HANGAR_TICKTICK_CLIENT_ID", "HANGAR_TICKTICK_CLIENT_SECRET", "HANGAR_TICKTICK_TOKEN",
+               "HANGAR_GOOGLE_CLIENT_ID", "HANGAR_GOOGLE_CLIENT_SECRET", "HANGAR_GOOGLE_REFRESH_TOKEN")
 _ALIASES = {"HANGAR_VAULT": ("vault", "caminho"), "HANGAR_PORT": ("servidor", "porta"),
             "ROTA23_PORT": ("servidor", "porta")}
 

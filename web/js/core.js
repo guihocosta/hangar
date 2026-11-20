@@ -63,6 +63,29 @@ export function candidates() {
   return { late, now, next };
 }
 
+/* ---------- Google Agenda ---------- */
+export const gc = () => state.src.gcal?.data || null;
+/** Eventos de um dia (AAAA-MM-DD): os de dia inteiro primeiro, depois por horário. */
+export function eventsOn(key) {
+  return (gc()?.events || []).filter((e) => (e.allDay
+    ? e.start <= key && key < (e.end || dayKey(addDays(new Date(e.start + "T12:00"), 1)))
+    : dayKey(new Date(e.start)) === key))
+    .sort((a, b) => (a.allDay !== b.allDay ? (a.allDay ? -1 : 1) : a.start.localeCompare(b.start)));
+}
+export const eventTime = (e) => (e.allDay ? null : hm(new Date(e.start)) + (e.end ? "–" + hm(new Date(e.end)) : ""));
+/** Minutos do dia (início e fim) de um evento com hora; o fim fica no dia do início. */
+export function eventSpan(e, key) {
+  const s = new Date(e.start); const f = e.end ? new Date(e.end) : s;
+  const from = dayKey(s) === key ? s.getHours() * 60 + s.getMinutes() : 0;
+  const to = dayKey(f) === key ? f.getHours() * 60 + f.getMinutes() : 24 * 60;
+  return { from, to: Math.max(to, from) };
+}
+export function calInfo(id) {
+  const cs = gc()?.calendars || [];
+  const i = cs.findIndex((c) => c.id === id);
+  return { name: i >= 0 ? cs[i].name : "", color: `var(--list-${(Math.max(i, 0) % 5) + 1})` };
+}
+
 /* ---------- configuração ---------- */
 export const cfg = () => state.cfg;
 

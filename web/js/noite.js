@@ -1,5 +1,8 @@
 // A noite em blocos até o horário de fim dos Ajustes.
-import { $, state, api, toast, esc, icon, pad, hm, nowDate, todayKey, parseHM, fmtDur, shortDate, isLate, taskTime, projectInfo, taskById, candidates, tt } from "./core.js";
+import { $, state, api, toast, esc, icon, pad, hm, nowDate, todayKey, parseHM, fmtDur, shortDate, isLate, taskTime, projectInfo, taskById, candidates, tt, gc, eventsOn, eventSpan, eventTime, calInfo } from "./core.js";
+
+/** Compromissos com hora do dia da sessão, em minutos (Google Agenda). */
+const timedEvents = () => (gc() ? eventsOn(state.session.date).filter((e) => !e.allDay).map((e) => ({ ...e, ...eventSpan(e, state.session.date) })) : []);
 
 const endMin = () => { const f = state.cfg?.noite?.fim || "23:00"; return /^\d{2}:\d{2}$/.test(f) ? parseHM(f) : 23 * 60; };
 const DUR = [10, 15, 25, 30, 45, 60, 90];
@@ -63,6 +66,7 @@ export function renderNoite() {
   $("#left").textContent = end - nowMin > 0 ? fmtDur(end - nowMin) : "0 min";
   const sm = startMin(); const input = $("#start-at");
   if (document.activeElement !== input) input.value = `${pad(Math.floor(sm / 60) % 24)}:${pad(sm % 60)}`;
+  const evs = timedEvents();
   const tl = timeline(); const planned = tl.blocks.reduce((a, b) => a + b.min, 0); const slack = end - tl.end;
   $("#planned").textContent = fmtDur(planned);
   $("#slack").textContent = slack >= 0 ? fmtDur(slack) : `passou ${fmtDur(-slack)}`;
@@ -82,6 +86,8 @@ export function renderNoite() {
     if (b.kind === "habit") meta.push("<span>Hábito</span>");
     if (t && isLate(t)) meta.push(`<span class="late">Atrasada desde ${shortDate(new Date(t.due))}</span>`);
     if (t && t.items) meta.push(`<span>${t.itemsDone} de ${t.items} itens</span>`);
+    const clash = b.kind !== "pause" && evs.find((e) => e.from < b.to && b.from < e.to);
+    if (clash) meta.push(`<span class="late">Bate com ${esc(hm(new Date(clash.start)))} ${esc(clash.title)}</span>`);
     const opts = [...new Set([...DUR, b.min])].sort((a, c) => a - c).map((m) => `<option value="${m}"${m === b.min ? " selected" : ""}>${fmtDur(m)}</option>`).join("");
     const done = cls.includes("is-done"); const at = hm(minToDate(state.session.date, b.from));
     return `<li class="${cls.join(" ")}" data-block="${b.id}" style="--min:${b.min}">
@@ -120,7 +126,12 @@ function renderQueue() {
       <div class="tools">${late ? `<button type="button" class="btn btn-text btn-icon" data-act="postpone" aria-label="Empurrar ${esc(t.title)} para amanhã" title="Empurrar para amanhã">${icon.later}</button>` : ""}
       <button type="button" class="btn btn-ghost btn-sm" data-act="fit" ${inn ? "disabled" : ""}>${inn ? "Na noite" : "Encaixar"}</button></div></li>`;
   }).join("")}</ul>`;
-  q.innerHTML = group("Vence hoje", now) + group("Ficou para trás", late, true) + group("Amanhã", next) || `<p class="empty">Nada vence hoje nem ficou para trás. Encaixe uma pausa ou um hábito, ou aproveite a folga.</p>`;
+  const evs = timedEvents().filter((e) => e.to > startMin() && e.from < endMin());
+  const agenda = !evs.length ? "" : `<h3>Compromissos <span class="count">${evs.length}</span></h3><ul class="rows">${evs.map((e) => {
+    const c = calInfo(e.cal);
+    return `<li class="row is-event" style="--lc:${c.color}"><div><p class="row-title">${esc(e.title)}</p><p class="row-meta"><span class="num">${esc(eventTime(e))}</span><span style="color:${c.color}">${esc(c.name)}</span></p></div></li>`;
+  }).join("")}</ul>`;
+  q.innerHTML = agenda + group("Vence hoje", now) + group("Ficou para trás", late, true) + group("Amanhã", next) || `<p class="empty">Nada vence hoje nem ficou para trás. Encaixe uma pausa ou um hábito, ou aproveite a folga.</p>`;
   const hs = tt().habits; const inH = new Set(state.session.blocks.map((b) => b.habitId));
   $("#habits").innerHTML = hs === null ? `<li class="empty">Não consegui ler os hábitos agora.</li>`
     : hs.length ? hs.map((h) => `<li class="row${h.done ? " is-done" : ""}" data-habit="${h.id}"><div><p class="row-title">${esc(h.name)}</p><p class="row-meta">${h.reminder ? `<span class="num">${h.reminder}</span>` : ""}<span>${h.done ? "Feito hoje" : "Pendente"}</span></p></div>

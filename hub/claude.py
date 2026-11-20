@@ -1,6 +1,6 @@
 """Pauta do dia e sugestões de caminhos, geradas pelo `claude -p` sem ferramentas.
 
-O servidor monta o contexto (TickTick, cards, PRs, GLPI, pendências, ideias e notas extras) e o
+O servidor monta o contexto (TickTick, Google Agenda, cards, PRs, GLPI, pendências, ideias e notas extras) e o
 Claude só raciocina sobre ele: não lê arquivos, não roda comandos e não escreve em lugar nenhum.
 Quem grava no vault é o hub. Perfil, regras e seções vêm da configuração (aba Ajustes).
 """
@@ -116,6 +116,35 @@ def _github_ctx(gh):
             f"Reviews pedidas a {n}:\n{rev}\n\nPRs abertos de {n}:\n{mine}")
 
 
+def _gcal_ctx(g):
+    if not g:
+        return "(Google Agenda indisponível)"
+    names = {c["id"]: c["name"] for c in g["calendars"]}
+    today = date.today()
+    now, soon = [], []
+    for e in g["events"]:
+        if e["allDay"]:
+            d0 = date.fromisoformat(e["start"])
+            d1 = date.fromisoformat(e["end"]) - timedelta(days=1) if e.get("end") else d0
+            if d1 < today or d0 > today + timedelta(days=7):
+                continue
+            span = f" (dia inteiro{', até ' + f'{d1:%d/%m}' if d1 > d0 else ''})"
+            line = f"- {e['title']} [{names.get(e['cal'], '?')}]{span}"
+            (now if d0 <= today else soon).append(line if d0 <= today else line + f" ({WD[d0.weekday()]} {d0:%d/%m})")
+            continue
+        s, f = _d(e["start"]), _d(e.get("end"))
+        if not s or (f or s).date() < today or s.date() > today + timedelta(days=7):
+            continue
+        hours = f"{s:%H:%M}" + (f"–{f:%H:%M}" if f and f.date() == s.date() else "")
+        line = f"- {hours} {e['title']} [{names.get(e['cal'], '?')}]" + (f" @ {e['location']}" if e.get("location") else "")
+        if s.date() <= today:
+            now.append(line)
+        else:
+            soon.append(line + f" ({WD[s.weekday()]} {s:%d/%m})")
+    return ("Hoje:\n" + ("\n".join(now) or "- nada marcado") + "\n\nPróximos 7 dias:\n"
+            + ("\n".join(soon[:40]) or "- nada marcado"))
+
+
 def _grupo():
     return config.get()["glpi"]["rotulo_grupo"] or "grupo"
 
@@ -155,6 +184,8 @@ def context(include_glpi=True):
     parts = [f"Hoje é {WD[today.weekday()]}, {today:%d/%m/%Y}. Agora são {datetime.now():%H:%M}."]
     if "ticktick" in src:
         parts.append(f"## TickTick\n{_ticktick_ctx(data.get('ticktick'))}")
+    if "gcal" in src:
+        parts.append(f"## Google Agenda (compromissos com hora marcada)\n{_gcal_ctx(data.get('gcal'))}")
     if "github" in src:
         parts.append(f"## {cfg['trabalho']['nome']} no GitHub\n{_github_ctx(data.get('github'))}")
     if "glpi" in src:
@@ -182,7 +213,10 @@ def pauta_prompt():
         "Priorize: atrasados e prazos de hoje, reviews pedidas paradas, cards bloqueados que dependem da pessoa, depois o resto.",
         "Aproveite a pauta anterior: o que ficou sem marcar e ainda vale entra de novo; o que já foi feito, não.",
         "Seja enxuto: no máximo 3 itens na primeira seção e uns 12 checkboxes no total.",
-    ] + [r for r in _cfg()["regras_pauta"] if str(r).strip()]
+    ] + ([
+        "Eventos do Google Agenda são compromissos, não tarefas: não viram checkbox. Use os horários para "
+        "dizer quando encaixar as tarefas (nos intervalos livres) e cite os compromissos do dia em \"Não esquecer\".",
+    ] if "gcal" in enabled() else []) + [r for r in _cfg()["regras_pauta"] if str(r).strip()]
     secoes = [s for s in _cfg()["secoes_pauta"] if str(s).strip()] or ["Foco de hoje"]
     fmt = "\n".join(f"## {s}" for s in secoes)
     return (f"Você monta a pauta do dia de {n}." + (f" {perfil}" if perfil else "") + "\n\nRegras:\n"

@@ -10,7 +10,7 @@ import { renderFoco, bindFoco, loadFoco } from "./foco.js";
 const ALL_VIEWS = { hoje: renderHoje, noite: renderNoite, agenda: renderAgenda, trabalho: renderTrabalho, ideias: renderIdeias, foco: renderFoco, ajustes: renderAjustes };
 const ORDER = ["hoje", "noite", "agenda", "trabalho", "ideias", "foco", "ajustes"];
 let VIEWS = { ...ALL_VIEWS };
-const LABEL = { ticktick: "TickTick", github: "GitHub", glpi: "GLPI", vault: "Vault" };
+const LABEL = { ticktick: "TickTick", gcal: "Google Agenda", github: "GitHub", glpi: "GLPI", vault: "Vault" };
 
 /* ---------- configuração ---------- */
 async function loadConfig() {
@@ -20,10 +20,10 @@ async function loadConfig() {
 }
 function applyConfig() {
   const c = state.cfg;
-  const on = { ticktick: c.ticktick.ativo, github: c.trabalho.ativo, glpi: c.glpi.ativo };
+  const on = { ticktick: c.ticktick.ativo, gcal: c.google?.ativo, github: c.trabalho.ativo, glpi: c.glpi.ativo };
   for (const k of Object.keys(LABEL)) if (k !== "vault") { if (on[k]) state.src[k] ??= null; else delete state.src[k]; }
   VIEWS = Object.fromEntries(Object.entries(ALL_VIEWS).filter(([k]) =>
-    !(k === "noite" && (!c.noite.ativo || !c.ticktick.ativo)) && !(k === "agenda" && !c.ticktick.ativo)
+    !(k === "noite" && (!c.noite.ativo || !c.ticktick.ativo)) && !(k === "agenda" && !c.ticktick.ativo && !c.google?.ativo)
     && !(k === "trabalho" && !c.trabalho.ativo && !c.glpi.ativo) && !(k === "foco" && !c.foco?.ativo)
     && !(k !== "ajustes" && (c.aparencia?.abas_ocultas || []).includes(k))));
   applyTheme(themeSeeds(c.aparencia));

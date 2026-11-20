@@ -53,6 +53,11 @@
     "media_dias": 7,
     "alta_dias": 2
   },
+  "google": {
+    "ativo": true,
+    "calendarios": [],
+    "dias": 60
+  },
   "trabalho": {
     "ativo": true,
     "nome": "Acme",

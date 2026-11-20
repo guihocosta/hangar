@@ -1,4 +1,19 @@
-import { $, state, isCobrar, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo } from "./core.js";
+import { $, state, isCobrar, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo, gc, eventsOn, eventTime, eventSpan, calInfo, todayKey } from "./core.js";
+
+export function eventRows(list, key) {
+  const now = new Date(); const nm = now.getHours() * 60 + now.getMinutes();
+  return list.map((e) => {
+    const c = calInfo(e.cal); const sp = e.allDay ? null : eventSpan(e, key);
+    const cls = ["row", "is-event"];
+    if (sp && nm >= sp.to) cls.push("is-past");
+    if (sp && nm >= sp.from && nm < sp.to) cls.push("is-current");
+    const when = e.allDay ? "dia inteiro" : eventTime(e);
+    const left = sp && nm < sp.from ? sp.from - nm : null;
+    return `<li class="${cls.join(" ")}" style="--lc:${c.color}"><div><p class="row-title">${esc(e.title)}</p>
+      <p class="row-meta"><span class="num">${esc(when)}</span><span style="color:${c.color}">${esc(c.name)}</span>${e.location ? `<span>${esc(e.location)}</span>` : ""}${cls.includes("is-current") ? "<span>agora</span>" : left != null && left <= 120 ? `<span>em ${left < 60 ? left + " min" : Math.floor(left / 60) + "h" + (left % 60 ? String(left % 60).padStart(2, "0") : "")}</span>` : ""}</p></div>
+      ${e.url ? `<a class="btn btn-text btn-icon" href="${esc(e.url)}" target="_blank" rel="noopener" aria-label="Abrir ${esc(e.title)} no Google Agenda">${icon.ext}</a>` : ""}</li>`;
+  }).join("");
+}
 
 export function soltasRows(list, { showTag = true } = {}) {
   if (!list.length) return `<li class="empty">Nada solto por aqui.</li>`;
@@ -63,6 +78,13 @@ export function renderHoje() {
       pa.innerHTML = `<div class="note"><p>Sem pauta ainda hoje. Gere agora: o Claude junta as suas fontes e as pendências e escreve a nota no vault.</p></div>`
         + p.extra.map((x) => `<details class="extra" open><summary>${esc(x.name.slice(13))}</summary>${md(x.markdown.replace(/^# .*\n+/, ""))}</details>`).join("");
     }
+  }
+
+  // compromissos de hoje (Google Agenda)
+  if (gc()) {
+    const k = todayKey(); const list = eventsOn(k);
+    $("#c-agenda-hoje").textContent = list.length || "";
+    $("#hoje-agenda").innerHTML = list.length ? eventRows(list, k) : `<li class="empty">Nada marcado hoje.</li>`;
   }
 
   // vence hoje (TickTick)

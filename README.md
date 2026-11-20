@@ -3,6 +3,7 @@
 Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023/) e junta:
 
 - **TickTick**: o que vence hoje, o que ficou para trás, hábitos e a agenda da semana ou do mês;
+- **Google Agenda** (opcional): os compromissos do dia e da semana, só leitura;
 - **GitHub**: cards atribuídos a você (com status e sprint de um GitHub Project) e PRs para revisar;
 - **GLPI** (opcional): métricas de um servicedesk, só leitura;
 - **um vault de notas** (Obsidian ou qualquer pasta de markdown): pendências soltas, quadro de ideias, a pauta do dia e o registro do foco;
@@ -10,9 +11,9 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 
 | Aba | O que mostra |
 |---|---|
-| **Hoje** | A pauta do dia (com checkboxes clicáveis), o que vence hoje, os cards e reviews e as pendências soltas |
-| **Noite** | A noite em blocos até o horário de fim que você escolher |
-| **Agenda** | Semana ou mês do TickTick |
+| **Hoje** | A pauta do dia (com checkboxes clicáveis), os compromissos de hoje, o que vence hoje, os cards e reviews e as pendências soltas |
+| **Noite** | A noite em blocos até o horário de fim que você escolher, com aviso quando um bloco bate com um compromisso |
+| **Agenda** | Semana ou mês do TickTick e do Google Agenda |
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |
 | **Foco** | Pomodoro configurável (tempos, ciclos, meta diária, som, notificação) e as estatísticas: hoje, semana, sequência, 28 dias e por área |
@@ -27,6 +28,7 @@ Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Esp
   - **Linux ou macOS**: `curl` e `xdg-open`/`open`; use o script `hangar`.
 - Opcionais, conforme as fontes que você ligar:
   - [TickTick](https://ticktick.com): pela **Open API oficial** (crie um app em [developer.ticktick.com](https://developer.ticktick.com) com Redirect URI `http://127.0.0.1:8023/oauth/ticktick`, cole Client ID e Secret em Ajustes, salve e clique em **Conectar TickTick**; ou cole um access token pronto). Sem token, cai para a sessão do app desktop;
+  - Google Agenda: num projeto do [Google Cloud](https://console.cloud.google.com), ative a **Google Calendar API**, configure a tela de consentimento (público externo, você como usuário de teste) e crie um **ID do cliente OAuth do tipo App para computador** (não precisa cadastrar redirect: o Google aceita o `127.0.0.1` sozinho). Cole Client ID e Secret em Ajustes, salve e clique em **Conectar Google Agenda**. Com o app em modo Teste o login vence a cada 7 dias; publique o app para não vencer;
   - [`gh`](https://cli.github.com) logado (`gh auth login`);
   - um GLPI com a API REST ligada (App-Token e token de usuário);
   - [Claude Code](https://claude.com/claude-code) (`claude` no PATH).
@@ -79,8 +81,9 @@ Os tokens do GLPI podem vir de `HANGAR_GLPI_URL`, `HANGAR_GLPI_APP_TOKEN` e `HAN
 ## Como funciona
 
 - `server.py` escuta só em 127.0.0.1 e recusa escrita sem o cabeçalho `X-Hangar` ou com outro Host/Origin.
-- **Rápido por desenho:** cada fonte (`hub/store.py`) fica em memória e num snapshot em disco. A página recebe o último snapshot na hora, e o servidor busca de novo em segundo plano quando ele passa da validade (TickTick 90 s, GitHub 5 min, GLPI 15 min).
+- **Rápido por desenho:** cada fonte (`hub/store.py`) fica em memória e num snapshot em disco. A página recebe o último snapshot na hora, e o servidor busca de novo em segundo plano quando ele passa da validade (TickTick 90 s, Google Agenda e GitHub 5 min, GLPI 15 min).
 - **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia, check-in de hábito e, com `ticktick.escalar`, a prioridade que sobe conforme o prazo chega (a original fica na etiqueta `p-<nível>`).
+- **Google Agenda** (`hub/gcal.py`): Calendar API v3 com escopo `calendar.readonly`, só leitura. O refresh token fica no `hangar.env`; o access token, só na memória. Lê uma semana para trás e `google.dias` para frente, com as repetições já abertas pelo Google; eventos recusados e de local de trabalho ficam de fora. Na pauta, os compromissos servem para encaixar as tarefas, nunca viram checkbox.
 - **GitHub** (`hub/github.py`): `gh api graphql`, só leitura. Status vem do campo `Status` do Project; a sprint é qualquer campo de iteração.
 - **GLPI** (`hub/glpi.py`): só `GET /search/Ticket`. Grupos com o prefixo configurado (ex.: `Squad `) viram as equipes do gráfico.
 - **Vault** (`hub/vault.py`): lê e escreve as notas de pendências, ideias e a pauta do dia (`AAAA-MM-DD - Pauta do dia.md`). As notas continuam editáveis à mão.

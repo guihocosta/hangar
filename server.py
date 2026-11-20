@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hangar: hub local (127.0.0.1) que junta TickTick, GitHub, GLPI, um vault de notas e a pauta do dia.
+"""Hangar: hub local (127.0.0.1) que junta TickTick, Google Agenda, GitHub, GLPI, um vault de notas e a pauta do dia.
 
 Leituras saem do cache na hora e são atualizadas em segundo plano (hub/store.py).
 Escritas só com o cabeçalho X-Hangar e Host/Origin locais.
@@ -11,8 +11,8 @@ from datetime import date
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
-from hub import claude, config, foco, paths, ticktick, vault
-from hub.sources import ALL, TICKTICK, enabled
+from hub import claude, config, foco, gcal, paths, ticktick, vault
+from hub.sources import ALL, GCAL, TICKTICK, enabled
 from hub.store import SourceError
 
 PORT = paths.port()
@@ -159,6 +159,22 @@ class Handler(SimpleHTTPRequestHandler):
                     raise SourceError("O TickTick negou o acesso: " + q["error"])
                 ticktick.finish_login(self.headers["Host"], q.get("code", ""), q.get("state", ""))
                 TICKTICK.invalidate()
+                self._redirect("/#ajustes")
+            except SourceError as e:
+                self._page(400, str(e))
+            return
+        if path == "/oauth/google/start":
+            try:
+                self._redirect(gcal.authorize_url(self.headers["Host"]))
+            except SourceError as e:
+                self._page(400, str(e))
+            return
+        if path == "/oauth/google":
+            try:
+                if q.get("error"):
+                    raise SourceError("O Google negou o acesso: " + q["error"])
+                gcal.finish_login(self.headers["Host"], q.get("code", ""), q.get("state", ""))
+                GCAL.invalidate()
                 self._redirect("/#ajustes")
             except SourceError as e:
                 self._page(400, str(e))
