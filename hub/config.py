@@ -71,6 +71,8 @@ DEFAULTS = {
         "ativo": False,
         "calendarios": [],  # ids dos calendários lidos; vazio = os marcados no Google Agenda
         "dias": 60,  # quantos dias para frente entram (a janela começa uma semana atrás)
+        "feriados_ignorar": [],  # feriados do Google em que você trabalha (trecho do nome)
+        "feriados_extras": [],  # folgas que o Google não conhece: "AAAA-MM-DD Nome" (estaduais, municipais)
     },
     "trabalho": {
         "ativo": False,

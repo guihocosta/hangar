@@ -43,6 +43,8 @@ const SCHEMA = [
     ["oauth:google", "Conectar Google Agenda", "oauth", "Abre o login do Google e grava o refresh token no hangar.env. Com o app em modo Teste, o Google derruba o login a cada 7 dias; publique o app (Em produção) para não vencer. Vai aparecer o aviso de app não verificado: é o seu próprio app."],
     ["google.calendarios", "Calendários", "gcal-cals", "Nenhum marcado = os que estão visíveis no Google Agenda."],
     ["google.dias", "Dias para frente", "number", "Quantos dias de compromissos entram (a janela começa uma semana atrás)."],
+    ["google.feriados_ignorar", "Feriados em que você trabalha", "lines", "O calendário de feriados do Google marca as folgas: nelas a pauta deixa o trabalho de fora e a Hoje esconde o painel de trabalho. Um trecho do nome por linha para não contar (ex.: Servidor Público)."],
+    ["google.feriados_extras", "Folgas que o Google não conhece", "lines", "Uma por linha: AAAA-MM-DD Nome (feriados estaduais e municipais, recesso)."],
   ]],
   ["Trabalho no GitHub", [
     ["trabalho.ativo", "Ler cards e PRs do GitHub", "bool", "Usa o gh CLI já logado (gh auth login)."],

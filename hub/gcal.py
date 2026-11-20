@@ -7,10 +7,15 @@ servidor; quando vence, sai outro do refresh token. Nada disso vai para o navega
 A leitura traz a lista de calendários e os eventos de uma janela (uma semana para trás e
 `google.dias` para frente), com as repetições já abertas pelo próprio Google (`singleEvents`).
 `google.calendarios` escolhe de quais calendários; vazio = os que estão marcados no Google Agenda.
+
+Feriados: o calendário de feriados do Google (o de "Feriados no Brasil", por exemplo) é sempre lido, e
+os dias marcados como "Feriado" (não as datas comemorativas) viram `holidays`. Neles não tem trabalho:
+a pauta deixa o trabalho de fora e a Hoje esconde o painel de trabalho.
 """
 import base64
 import hashlib
 import json
+import re
 import secrets
 import threading
 import time
@@ -106,11 +111,50 @@ def _declined(e):
     return any(a.get("self") and a.get("responseStatus") == "declined" for a in e.get("attendees") or [])
 
 
+def is_holiday_cal(cal_id):
+    """Calendários de feriados do próprio Google (ex.: pt.brazilian#holiday@group.v.calendar.google.com)."""
+    return cal_id.endswith("#holiday@group.v.calendar.google.com")
+
+
 def _event(e, cal_id):
     start, all_day = _when(e.get("start") or {})
     end, _ = _when(e.get("end") or {})
-    return {"id": e["id"], "cal": cal_id, "title": e.get("summary") or "(sem título)", "allDay": all_day,
-            "start": start, "end": end, "location": e.get("location") or "", "url": e.get("htmlLink") or ""}
+    out = {"id": e["id"], "cal": cal_id, "title": e.get("summary") or "(sem título)", "allDay": all_day,
+           "start": start, "end": end, "location": e.get("location") or "", "url": e.get("htmlLink") or ""}
+    if is_holiday_cal(cal_id):
+        # o Google escreve "Feriado" (ou "Public holiday") na descrição; o resto é data comemorativa
+        desc = (e.get("description") or "").strip().lower()
+        out["feriado"] = desc.startswith(("feriado", "public holiday", "holiday"))
+    return out
+
+
+_PARTIAL = re.compile(r"\((?:até|após)[^)]*horas?\)", re.I)
+
+
+def holidays(events):
+    """Feriados (dia inteiro, sem expediente) do calendário do Google e da lista extra dos Ajustes.
+
+    `parcial` = meio expediente (ex.: "Cinzas (até 14 horas)"). Nomes em `google.feriados_ignorar`
+    (trecho do nome, sem diferenciar maiúsculas) não contam como folga.
+    """
+    cfg = config.get()["google"]
+    skip = [s.strip().lower() for s in cfg["feriados_ignorar"] if str(s).strip()]
+    out = {}
+    for e in events:
+        if not e.get("feriado") or not e["allDay"] or any(s in e["title"].lower() for s in skip):
+            continue
+        out[e["start"]] = {"date": e["start"], "title": e["title"], "parcial": bool(_PARTIAL.search(e["title"]))}
+    for line in cfg["feriados_extras"]:
+        m = re.match(r"\s*(\d{4}-\d{2}-\d{2})\s*(.*)", str(line))
+        if m:
+            out[m.group(1)] = {"date": m.group(1), "title": m.group(2).strip() or "Feriado", "parcial": False}
+    return sorted(out.values(), key=lambda h: h["date"])
+
+
+def holiday_on(data, day):
+    """O feriado de um dia (date), se houver, a partir do que a fonte devolveu."""
+    key = day.isoformat()
+    return next((h for h in (data or {}).get("holidays") or [] if h["date"] == key), None)
 
 
 def _events(cal_id, t0, t1):
@@ -150,12 +194,14 @@ def fetch():
     now = datetime.now().astimezone()
     day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
     t0 = (day0 - timedelta(days=7)).isoformat()
-    t1 = (day0 + timedelta(days=max(1, int(cfg["dias"])) + 1)).isoformat()
-    on = [c["id"] for c in cals if c["on"]]
+    t1 = (day0 + timedelta(days=(int(cfg["dias"]) if int(cfg["dias"]) > 0 else 60) + 1)).isoformat()
+    # o calendário de feriados é lido mesmo desmarcado: sem ele não dá para saber o dia de folga
+    read = [c["id"] for c in cals if c["on"] or is_holiday_cal(c["id"])]
+    shown = {c["id"] for c in cals if c["on"]}
     with ThreadPoolExecutor(6) as ex:
-        lists = list(ex.map(lambda cid: _events(cid, t0, t1), on))
-    events = sorted((e for ls in lists for e in ls), key=lambda e: (e["start"] or "", not e["allDay"]))
-    return {"calendars": cals, "events": events}
+        lists = list(ex.map(lambda cid: _events(cid, t0, t1), read))
+    every = sorted((e for ls in lists for e in ls), key=lambda e: (e["start"] or "", not e["allDay"]))
+    return {"calendars": cals, "events": [e for e in every if e["cal"] in shown], "holidays": holidays(every)}
 
 
 # ---------- login OAuth (aba Ajustes) ----------

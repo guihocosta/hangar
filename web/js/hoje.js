@@ -1,4 +1,4 @@
-import { $, state, isCobrar, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo, gc, eventsOn, eventTime, eventSpan, calInfo, todayKey } from "./core.js";
+import { $, state, isCobrar, WD, MONTHS, esc, md, ago, candidates, projectInfo, taskTime, shortDate, icon, daysSince, hm, areaColor, shortRepo, gc, eventsOn, eventTime, eventSpan, calInfo, todayKey, holidayOn } from "./core.js";
 
 export function eventRows(list, key) {
   const now = new Date(); const nm = now.getHours() * 60 + now.getMinutes();
@@ -52,7 +52,9 @@ export const hiddenCards = () => new Set(JSON.parse((() => { try { return localS
 
 export function renderHoje() {
   const d = new Date();
-  $("#hoje-wd").textContent = WD[d.getDay()];
+  const hol = holidayOn(todayKey()); const folga = !!hol && !hol.parcial;
+  $("#hoje-wd").textContent = WD[d.getDay()] + (hol ? ` · feriado: ${hol.title}${hol.parcial ? " (meio expediente)" : ", sem trabalho"}` : "");
+  $("#h-trabnow").closest("section").hidden = !state.cfg?.trabalho?.ativo || folga;
   $("#hoje-h").textContent = `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
 
   // pauta

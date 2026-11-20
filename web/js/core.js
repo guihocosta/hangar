@@ -72,6 +72,8 @@ export function eventsOn(key) {
     : dayKey(new Date(e.start)) === key))
     .sort((a, b) => (a.allDay !== b.allDay ? (a.allDay ? -1 : 1) : a.start.localeCompare(b.start)));
 }
+/** Feriado de um dia (AAAA-MM-DD), pelo Google Agenda: { date, title, parcial } ou null. */
+export const holidayOn = (key) => (gc()?.holidays || []).find((h) => h.date === key) || null;
 export const eventTime = (e) => (e.allDay ? null : hm(new Date(e.start)) + (e.end ? "–" + hm(new Date(e.end)) : ""));
 /** Minutos do dia (início e fim) de um evento com hora; o fim fica no dia do início. */
 export function eventSpan(e, key) {

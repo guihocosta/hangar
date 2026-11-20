@@ -13,7 +13,7 @@ import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import config, paths, vault
+from . import config, gcal, paths, vault
 from .sources import enabled
 
 WD = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
@@ -141,8 +141,18 @@ def _gcal_ctx(g):
             now.append(line)
         else:
             soon.append(line + f" ({WD[s.weekday()]} {s:%d/%m})")
+    hol = [h for h in g.get("holidays") or [] if today < date.fromisoformat(h["date"]) <= today + timedelta(days=14)]
+    hol_txt = "\n".join(f"- {WD[date.fromisoformat(h['date']).weekday()]} {date.fromisoformat(h['date']):%d/%m}: "
+                        f"{h['title']}{' (meio expediente)' if h['parcial'] else ' (sem trabalho)'}" for h in hol)
     return ("Hoje:\n" + ("\n".join(now) or "- nada marcado") + "\n\nPróximos 7 dias:\n"
-            + ("\n".join(soon[:40]) or "- nada marcado"))
+            + ("\n".join(soon[:40]) or "- nada marcado")
+            + ("\n\nFeriados nas próximas duas semanas:\n" + hol_txt if hol_txt else ""))
+
+
+def feriado_hoje():
+    """O feriado de hoje pelo Google Agenda (ou None se não há, ou se a fonte está desligada)."""
+    src = enabled().get("gcal")
+    return gcal.holiday_on(src.get()["data"], date.today()) if src else None
 
 
 def _grupo():
@@ -166,7 +176,10 @@ def context(include_glpi=True):
     cfg = config.get()
     src = enabled()
     data = {k: s.get()["data"] for k, s in src.items() if include_glpi or k != "glpi"}
-    pend = [p for p in vault.pendencias() if not p["done"]]
+    hol = feriado_hoje()
+    folga = bool(hol and not hol["parcial"])  # feriado inteiro: o trabalho nem entra no contexto
+    area_trab = cfg["trabalho"]["area"]
+    pend = [p for p in vault.pendencias() if not p["done"] and not (folga and area_trab in p["tags"])]
     pend_txt = "\n".join(f"- {p['text']}{' #' + ' #'.join(p['tags']) if p['tags'] else ''}"
                          f"{' (desde ' + p['since'] + ')' if p['since'] else ''}" for p in pend) or "- nenhuma"
     notes = "\n\n".join(f"[{n}]\n{t}" for n, t in vault.extra_notes()) or "(nenhuma)"
@@ -181,14 +194,18 @@ def context(include_glpi=True):
     recent = sorted((p for p in conv.glob("20*.md")
                      if p.name[:10] >= (date.today() - timedelta(days=3)).isoformat()), reverse=True)[:12] if conv.exists() else []
     today = date.today()
-    parts = [f"Hoje é {WD[today.weekday()]}, {today:%d/%m/%Y}. Agora são {datetime.now():%H:%M}."]
+    head = f"Hoje é {WD[today.weekday()]}, {today:%d/%m/%Y}. Agora são {datetime.now():%H:%M}."
+    if hol:
+        head += (f" Hoje é feriado ({hol['title']}): meio expediente." if hol["parcial"]
+                 else f" Hoje é feriado ({hol['title']}): {_nome()} não trabalha hoje.")
+    parts = [head]
     if "ticktick" in src:
         parts.append(f"## TickTick\n{_ticktick_ctx(data.get('ticktick'))}")
     if "gcal" in src:
         parts.append(f"## Google Agenda (compromissos com hora marcada)\n{_gcal_ctx(data.get('gcal'))}")
-    if "github" in src:
+    if "github" in src and not folga:
         parts.append(f"## {cfg['trabalho']['nome']} no GitHub\n{_github_ctx(data.get('github'))}")
-    if "glpi" in src:
+    if "glpi" in src and not folga:
         parts.append(f"## {cfg['glpi']['nome']}\n" + (_glpi_ctx(data.get('glpi')) if include_glpi else "(não incluído)"))
     parts += [f"## Pendências soltas (não viraram card)\n{pend_txt}",
               f"## Lembretes e notas extras\n{notes}",
@@ -198,6 +215,19 @@ def context(include_glpi=True):
 
 
 # ---------- pauta ----------
+
+def _regra_feriado():
+    hol = feriado_hoje()
+    if not hol:
+        return []
+    trab = config.get()["trabalho"]["nome"]
+    if hol["parcial"]:
+        return [f"Hoje é feriado com meio expediente ({hol['title']}): trabalho de {trab} só na parte do dia "
+                "que tem expediente; diga isso na primeira seção."]
+    return [f"Hoje é feriado ({hol['title']}) e não tem trabalho: nada de {trab}, nem tarefas de trabalho do "
+            "TickTick, nem a linha \"Em espera / de outros\". Omita a seção de trabalho e diga na primeira "
+            "seção que é feriado."]
+
 
 def pauta_prompt():
     cfg = config.get()
@@ -216,7 +246,7 @@ def pauta_prompt():
     ] + ([
         "Eventos do Google Agenda são compromissos, não tarefas: não viram checkbox. Use os horários para "
         "dizer quando encaixar as tarefas (nos intervalos livres) e cite os compromissos do dia em \"Não esquecer\".",
-    ] if "gcal" in enabled() else []) + [r for r in _cfg()["regras_pauta"] if str(r).strip()]
+    ] if "gcal" in enabled() else []) + _regra_feriado() + [r for r in _cfg()["regras_pauta"] if str(r).strip()]
     secoes = [s for s in _cfg()["secoes_pauta"] if str(s).strip()] or ["Foco de hoje"]
     fmt = "\n".join(f"## {s}" for s in secoes)
     return (f"Você monta a pauta do dia de {n}." + (f" {perfil}" if perfil else "") + "\n\nRegras:\n"
