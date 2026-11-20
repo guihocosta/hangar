@@ -1,4 +1,4 @@
-import { $, $$, state, api, toast, busy, ago, todayKey, esc, areaColor } from "./core.js";
+import { $, $$, state, api, toast, busy, ago, todayKey, esc, areaColor, applyTheme, themeSeeds } from "./core.js";
 import { renderHoje } from "./hoje.js";
 import { renderNoite, loadSession, bindNoite } from "./noite.js";
 import { renderAgenda, bindAgenda } from "./agenda.js";
@@ -23,7 +23,9 @@ function applyConfig() {
   for (const k of Object.keys(LABEL)) if (k !== "vault") { if (on[k]) state.src[k] ??= null; else delete state.src[k]; }
   VIEWS = Object.fromEntries(Object.entries(ALL_VIEWS).filter(([k]) =>
     !(k === "noite" && (!c.noite.ativo || !c.ticktick.ativo)) && !(k === "agenda" && !c.ticktick.ativo)
-    && !(k === "trabalho" && !c.trabalho.ativo && !c.glpi.ativo)));
+    && !(k === "trabalho" && !c.trabalho.ativo && !c.glpi.ativo)
+    && !(k !== "ajustes" && (c.aparencia?.abas_ocultas || []).includes(k))));
+  applyTheme(themeSeeds(c.aparencia));
   ORDER.forEach((v) => { const a = $(`.nav a[data-view="${v}"]`); a.hidden = !VIEWS[v]; });
   let n = 0; ORDER.filter((v) => VIEWS[v]).forEach((v) => { $(`.nav a[data-view="${v}"] kbd`).textContent = ++n; });
   $$("[data-needs]").forEach((el) => { el.hidden = !on[el.dataset.needs]; });
@@ -94,8 +96,9 @@ async function postpone(t, btn) {
 function route() {
   const raw = location.hash.slice(1) || (state.cfgInfo && !state.cfgInfo.exists ? "ajustes" : "hoje");
   const v = raw === "sessao" ? "noite" : raw;
-  state.view = VIEWS[v] ? v : "hoje";
+  state.view = VIEWS[v] ? v : ORDER.find((x) => VIEWS[x]);
   $$(".view").forEach((el) => { el.hidden = el.dataset.view !== state.view; });
+  if (state.view !== "ajustes" && state.cfg) applyTheme(themeSeeds(state.cfg.aparencia), false); // prévia não salva some
   $$(".nav a").forEach((a) => { if (a.dataset.view === state.view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   document.title = state.view === "hoje" ? "Hangar" : `${$(`.nav a[data-view="${state.view}"] span`).textContent} · Hangar`;
   render();
@@ -145,7 +148,7 @@ function bind() {
     const views = ORDER.filter((v) => VIEWS[v]);
     if (/^[1-9]$/.test(e.key) && views[Number(e.key) - 1]) { location.hash = views[Number(e.key) - 1]; }
     else if (e.key === "r" || e.key === "R") { $("#sync-btn").click(); }
-    else if (e.key === "n" || e.key === "N") { e.preventDefault(); if (state.view !== "hoje") location.hash = "hoje"; route(); $("#pend-new").focus(); }
+    else if ((e.key === "n" || e.key === "N") && VIEWS.hoje) { e.preventDefault(); if (state.view !== "hoje") location.hash = "hoje"; route(); $("#pend-new").focus(); }
   });
   window.addEventListener("hashchange", route);
   window.addEventListener("resize", () => state.view === "noite" && renderNoite());

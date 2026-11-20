@@ -1,14 +1,18 @@
-// Aba Ajustes: edita o config.json e os segredos (GLPI, TickTick) (que nunca voltam para a página).
-import { $, state, esc } from "./core.js";
+// Aba Ajustes: edita o config.json e os segredos (GLPI, TickTick), que nunca voltam para a página.
+import { $, $$, state, esc, TEMAS, themeSeeds, applyTheme } from "./core.js";
 
 // tipos: text, textarea, number, bool, time, lines (uma por linha), areas (um nome por linha),
-// focos ("Rótulo | foco" por linha), secret (só escrita)
+// focos ("Rótulo | foco" por linha), secret (só escrita), tema (temas prontos + 3 cores), abas (quais aparecem)
 const SCHEMA = [
   ["Você", [
     ["usuario.nome", "Seu nome", "text", "Como a pauta e as ideias chamam você."],
     ["usuario.perfil", "Quem você é", "textarea", "Uma ou duas frases sobre o seu trabalho e a sua rotina. Entra no prompt da pauta e das ideias."],
     ["fuso", "Fuso horário", "text", "Formato IANA, ex.: America/Sao_Paulo."],
     ["areas", "Áreas das pendências", "areas", "Uma por linha. A etiqueta no vault é o nome em minúsculas, sem acento (ex.: Estudo → #estudo)."],
+  ]],
+  ["Aparência", [
+    ["aparencia.tema", "Cores", "tema", "Escolha um tema pronto ou ajuste as três cores. A página muda na hora; salve para manter. O brilho de cada cor é corrigido sozinho para o texto continuar legível."],
+    ["aparencia.abas_ocultas", "Abas na barra lateral", "abas", "Desmarque o que você não usa. Ajustes sempre fica; os atalhos numéricos seguem a ordem das abas visíveis."],
   ]],
   ["Vault", [
     ["vault.caminho", "Pasta do vault", "text", "Pasta de notas markdown (um vault do Obsidian serve). Vazio = ~/Hangar."],
@@ -103,6 +107,12 @@ function field([path, label, type, help], cfg, locked, secrets) {
     const ok = secrets.HANGAR_TICKTICK_TOKEN;
     return `<div class="cfg-f"><a class="btn btn-ghost" id="${id}" href="/oauth/ticktick/start">${esc(label)}</a>${ok ? ` <span class="muted small">token já definido</span>` : ""}${helpEl}</div>`;
   }
+  if (type === "tema") return themeField(id, get(cfg, "aparencia") || {}, helpEl);
+  if (type === "abas") {
+    const hidden = get(cfg, path) || [];
+    const boxes = ABAS.map(([k, nome]) => `<label><input type="checkbox" data-aba="${k}"${hidden.includes(k) ? "" : " checked"}> ${esc(k === "trabalho" ? cfg.trabalho?.nome || nome : nome)}</label>`).join("");
+    return `<fieldset class="cfg-f cfg-abas"><legend>${esc(label)}</legend><div class="cfg-checks">${boxes}</div>${helpEl}</fieldset>`;
+  }
   if (type === "secret") {
     const key = path.slice(7); const has = secrets[key];
     return `<div class="cfg-f"><label for="${id}">${esc(label)}</label>
@@ -115,9 +125,36 @@ function field([path, label, type, help], cfg, locked, secrets) {
   return `<div class="cfg-f"><label for="${id}">${esc(label)}</label>${input}${helpEl}</div>`;
 }
 
+const ABAS = [["hoje", "Hoje"], ["noite", "Noite"], ["agenda", "Agenda"], ["trabalho", "Trabalho"], ["ideias", "Ideias"]];
+const CORES = [["fundo", "Fundo"], ["estrutura", "Estrutura"], ["destaque", "Destaque"]];
+
+function themeField(id, a, helpEl) {
+  const seeds = themeSeeds(a);
+  const cur = TEMAS[a.tema] || a.tema === "personalizado" ? a.tema : "cabine";
+  const swatch = (s) => `<span class="sw" aria-hidden="true" style="--sw-f:${s.fundo};--sw-e:${s.estrutura};--sw-d:${s.destaque}"><i></i><i></i><i></i></span>`;
+  const btn = (k, nome, s) => `<button type="button" class="tema" data-tema="${k}" aria-pressed="${k === cur}">${swatch(s)}${esc(nome)}</button>`;
+  const presets = Object.entries(TEMAS).map(([k, t]) => btn(k, t.nome, t)).join("") + btn("personalizado", "Personalizado", seeds);
+  const pickers = CORES.map(([k, nome]) =>
+    `<label class="cor"><input type="color" data-path="aparencia.${k}" data-type="text" data-cor="${k}" value="${seeds[k]}"> ${nome}</label>`).join("");
+  return `<fieldset class="cfg-f cfg-tema" id="${id}"><legend>Cores</legend>
+    <input type="hidden" data-path="aparencia.tema" data-type="text" value="${cur}">
+    <div class="temas" role="group" aria-label="Temas prontos">${presets}</div>
+    <div class="cores">${pickers}</div>${helpEl}</fieldset>`;
+}
+
+/** Lê o tema dos campos e aplica na página (prévia antes de salvar). */
+function previewTheme() {
+  const tema = $('#cfg-form [data-path="aparencia.tema"]').value;
+  const a = { tema }; $$("#cfg-form [data-cor]").forEach((el) => { a[el.dataset.cor] = el.value; });
+  applyTheme(themeSeeds(a), false);
+  $$("#cfg-form .tema").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tema === tema)));
+  const sw = $('#cfg-form .tema[data-tema="personalizado"] .sw');
+  if (sw) CORES.forEach(([k]) => sw.style.setProperty(`--sw-${k[0]}`, a[k]));
+}
+
 export function renderAjustes() {
   const c = state.cfgInfo; if (!c) return;
-  if ($("#cfg-fields").dataset.ready) return; // não apaga o que está sendo digitado
+  if ($("#cfg-fields").dataset.ready) { previewTheme(); return; } // não apaga o que está sendo digitado
   $("#cfg-fields").dataset.ready = "1";
   $("#cfg-first").hidden = c.exists;
   $("#cfg-file").textContent = c.file;
@@ -125,11 +162,24 @@ export function renderAjustes() {
 }
 
 export function bindAjustes({ save }) {
+  $("#cfg-form").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tema]"); if (!b) return;
+    const k = b.dataset.tema;
+    $('#cfg-form [data-path="aparencia.tema"]').value = k;
+    if (TEMAS[k]) $$("#cfg-form [data-cor]").forEach((el) => { el.value = TEMAS[k][el.dataset.cor]; });
+    previewTheme();
+  });
+  $("#cfg-form").addEventListener("input", (e) => {
+    if (!e.target.dataset.cor) return;
+    $('#cfg-form [data-path="aparencia.tema"]').value = "personalizado";
+    previewTheme();
+  });
   $("#cfg-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const cfg = {}; const secrets = {};
     for (const el of $("#cfg-form").querySelectorAll("[data-path]:not(:disabled)")) set(cfg, el.dataset.path, parse(el.dataset.type, el.value, el.checked));
     for (const el of $("#cfg-form").querySelectorAll("[data-secret]")) if (el.value.trim()) secrets[el.dataset.secret] = el.value.trim();
+    set(cfg, "aparencia.abas_ocultas", $$("#cfg-form [data-aba]").filter((el) => !el.checked).map((el) => el.dataset.aba));
     save({ config: cfg, secrets }, e.submitter).then((ok) => {
       if (!ok) return;
       $("#cfg-fields").dataset.ready = "";

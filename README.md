@@ -15,7 +15,7 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 | **Agenda** | Semana ou mês do TickTick |
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |
-| **Ajustes** | Toda a configuração, sem editar arquivo |
+| **Ajustes** | Toda a configuração, sem editar arquivo, inclusive as cores (temas prontos ou três cores suas) e quais abas aparecem na barra lateral |
 
 Atalhos: `1`–`6` trocam de aba, `R` sincroniza, `N` anota uma pendência.
 
