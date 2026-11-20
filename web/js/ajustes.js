@@ -29,6 +29,7 @@ const SCHEMA = [
     ["oauth:ticktick", "Conectar TickTick", "oauth", "Abre o login do TickTick e grava o token no hangar.env."],
     ["secret:HANGAR_TICKTICK_TOKEN", "Ou cole um access token", "secret", "Se você já tem um token da Open API."],
     ["ticktick.sessao", "Arquivo da sessão do app (sem token)", "text", "Caminho antigo, só se não houver token."],
+    ["ticktick.url_tarefa", "Link para abrir uma tarefa", "text", "Usado em Abrir no TickTick. {id} = tarefa, {projeto} = lista. Quem usa o Dida365 troca o domínio."],
     ["noite.ativo", "Mostrar a aba Noite", "bool", ""],
     ["noite.titulo", "Título da noite", "text", ""],
     ["noite.fim", "A noite acaba às", "time", ""],

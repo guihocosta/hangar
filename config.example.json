@@ -48,7 +48,8 @@
   },
   "ticktick": {
     "ativo": true,
-    "sessao": "~/.config/ticktick/config.json"
+    "sessao": "~/.config/ticktick/config.json",
+    "url_tarefa": "https://ticktick.com/webapp/#p/{projeto}/tasks/{id}"
   },
   "agenda": {
     "escala": "lista",

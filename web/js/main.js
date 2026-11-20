@@ -91,7 +91,7 @@ async function checkin(habitId, btn) {
   return busy(btn, async () => { await api("/api/habit/checkin", { habitId }); toast("Hábito marcado."); await loadSrc("ticktick"); return true; });
 }
 async function postpone(t, btn, days = 1) {
-  return busy(btn, async () => { await api("/api/task/postpone", { id: t.id, projectId: t.projectId, days }); toast(days === 1 ? "Empurrada um dia no TickTick." : `Empurrada ${days} dias no TickTick.`); await loadSrc("ticktick"); });
+  return busy(btn, async () => { await api("/api/task/postpone", { id: t.id, projectId: t.projectId, days }); toast(days === 1 ? "Empurrada um dia no TickTick." : `Empurrada ${days} dias no TickTick.`); await loadSrc("ticktick"); return true; });
 }
 
 function route() {

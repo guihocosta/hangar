@@ -68,6 +68,12 @@ def _task(t, done=False):
            "allDay": bool(t.get("isAllDay")), "start": iso(t.get("startDate") or (t.get("completedTime") if done else None)),
            "due": iso(t.get("dueDate")), "repeat": bool(t.get("repeatFlag")) and not done,
            "items": 0 if done else len(items), "itemsDone": 0 if done else sum(1 for i in items if i.get("status"))}
+    note = (t.get("content") or t.get("desc") or "").strip()
+    if note:
+        out["content"] = note[:4000]
+    if items and not done:
+        out["checklist"] = [{"title": i.get("title", ""), "done": bool(i.get("status"))}
+                            for i in sorted(items, key=lambda i: i.get("sortOrder", 0))]
     if done:
         out["completedAt"] = iso(t.get("completedTime"))
     return out

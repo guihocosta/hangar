@@ -60,7 +60,12 @@ DEFAULTS = {
         "som": True,
         "aviso": True,  # notificação do navegador
     },
-    "ticktick": {"ativo": True, "sessao": "~/.config/ticktick/config.json"},
+    "ticktick": {
+        "ativo": True,
+        "sessao": "~/.config/ticktick/config.json",
+        # link de "Abrir no TickTick": {id} = tarefa, {projeto} = lista (Dida365: troque o domínio)
+        "url_tarefa": "https://ticktick.com/webapp/#p/{projeto}/tasks/{id}",
+    },
     "agenda": {  # aba Agenda: como ler prazos nos títulos do TickTick
         "escala": "lista",  # lista | semana | mes (a última escolhida no navegador vale mais)
         "semanas_lista": 4,
