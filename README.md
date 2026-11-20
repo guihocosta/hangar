@@ -12,13 +12,13 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 |---|---|
 | **Hoje** | A pauta do dia (com checkboxes clicáveis), o que vence hoje, os cards e reviews e as pendências soltas |
 | **Noite** | A noite em blocos até o horário de fim que você escolher |
-| **Agenda** | Semana ou mês do TickTick |
+| **Agenda** | Lista, semana ou mês do TickTick, com radar (atrasadas, hoje, próximos prazos), filtros por tipo, código e lista, busca e botões de concluir e adiar em cada item. O que conta como prazo é configurável em Ajustes → Agenda |
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |
 | **Foco** | Pomodoro configurável (tempos, ciclos, meta diária, som, notificação) e as estatísticas: hoje, semana, sequência, 28 dias e por área |
 | **Ajustes** | Toda a configuração, sem editar arquivo, inclusive as cores (temas prontos ou três cores suas) e quais abas aparecem na barra lateral |
 
-Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Espaço` começa/pausa o foco.
+Atalhos: `1`–`7` trocam de aba, `R` sincroniza, `N` anota uma pendência, `Espaço` começa/pausa o foco. Na Agenda: `L`/`S`/`M` trocam a visão, `←`/`→` navegam, `T` volta para hoje e `/` busca.
 
 ## Requisitos
 
@@ -69,13 +69,15 @@ Tudo o que é seu fica fora do repositório:
 
 Ordem de prioridade: padrões do código → `config.json` → variáveis de ambiente. Qualquer chave pode vir do ambiente como `HANGAR_<SEÇÃO>_<CHAVE>` (por exemplo `HANGAR_VAULT_CAMINHO`, `HANGAR_TRABALHO_GITHUB_ORG`; listas em JSON). Uma chave definida pelo ambiente aparece travada na página. Atalhos: `HANGAR_PORT`, `HANGAR_VAULT`, `HANGAR_CONFIG` e `HANGAR_ENV_FILE`.
 
+**Agenda:** a seção `agenda` decide como ler os títulos do TickTick. `regex_codigo` tira um código do início (o padrão lê `[CALC] Lista 3` como `CALC`; vazio desliga), `rotulo_codigo` dá o nome dos filtros (Matérias, Projetos, Clientes…). `palavras_prova` marcam o prazo forte, `nao_prova` desfazem (`refazer a prova` é estudo), `palavras_entrega` e `prioridade_entrega` marcam o prazo comum, e `ignorar` tira lembretes. As palavras casam no início de palavra, sem diferenciar acento nem maiúscula. `rotulo_prova` e `rotulo_entrega` levam `singular/plural`.
+
 Os tokens do GLPI podem vir de `HANGAR_GLPI_URL`, `HANGAR_GLPI_APP_TOKEN` e `HANGAR_GLPI_USER_TOKEN` (ambiente ou `hangar.env`), ou de um `.env` que você já tenha (`glpi.arquivo_credenciais` + `glpi.prefixo_credenciais`, lendo `<prefixo>BASE_URL`, `<prefixo>APP_TOKEN` e `<prefixo>USER_TOKEN`). Eles nunca vão para o navegador: a página só sabe se estão definidos.
 
 ## Como funciona
 
 - `server.py` escuta só em 127.0.0.1 e recusa escrita sem o cabeçalho `X-Hangar` ou com outro Host/Origin.
 - **Rápido por desenho:** cada fonte (`hub/store.py`) fica em memória e num snapshot em disco. A página recebe o último snapshot na hora, e o servidor busca de novo em segundo plano quando ele passa da validade (TickTick 90 s, GitHub 5 min, GLPI 15 min).
-- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar um dia e (só pela sessão do app) check-in de hábito.
+- **TickTick** (`hub/ticktick.py`): com `HANGAR_TICKTICK_TOKEN`, usa a Open API oficial (`/open/v1`); sem ele, a sessão do app desktop (`ticktick.sessao`, API interna, pode mudar sem aviso). Escreve só concluir tarefa, empurrar a data (1 ou 7 dias) e (só pela sessão do app) check-in de hábito.
 - **GitHub** (`hub/github.py`): `gh api graphql`, só leitura. Status vem do campo `Status` do Project; a sprint é qualquer campo de iteração.
 - **GLPI** (`hub/glpi.py`): só `GET /search/Ticket`. Grupos com o prefixo configurado (ex.: `Squad `) viram as equipes do gráfico.
 - **Vault** (`hub/vault.py`): lê e escreve as notas de pendências, ideias e a pauta do dia (`AAAA-MM-DD - Pauta do dia.md`). As notas continuam editáveis à mão.

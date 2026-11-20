@@ -50,6 +50,20 @@
     "ativo": true,
     "sessao": "~/.config/ticktick/config.json"
   },
+  "agenda": {
+    "escala": "lista",
+    "semanas_lista": 4,
+    "dias_radar": 21,
+    "regex_codigo": "^\\[([^\\]]{1,12})\\]\\s*",
+    "rotulo_codigo": "Projetos",
+    "palavras_prova": ["release", "demo"],
+    "nao_prova": ["ensaio"],
+    "palavras_entrega": ["entrega", "prazo"],
+    "ignorar": [],
+    "prioridade_entrega": 5,
+    "rotulo_prova": "marco/marcos",
+    "rotulo_entrega": "entrega/entregas"
+  },
   "trabalho": {
     "ativo": true,
     "nome": "Acme",
