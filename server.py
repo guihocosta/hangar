@@ -4,6 +4,7 @@
 Leituras saem do cache na hora e são atualizadas em segundo plano (hub/store.py).
 Escritas só com o cabeçalho X-Hangar e Host/Origin locais.
 """
+import html
 import json
 import sys
 from datetime import date
@@ -110,6 +111,21 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b)
 
+    def _redirect(self, url):
+        self.send_response(302)
+        self.send_header("Location", url)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _page(self, code, msg):
+        b = (f'<!doctype html><meta charset="utf-8"><title>Hangar</title><p>{html.escape(msg)}</p>'
+             '<p><a href="/#ajustes">Voltar aos Ajustes</a></p>').encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(b)))
+        self.end_headers()
+        self.wfile.write(b)
+
     def _body(self):
         n = int(self.headers.get("Content-Length") or 0)
         if n > 200_000:
@@ -127,6 +143,22 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json(404, {"error": "fonte desconhecida"})
                 return
             self._json(200, src.get(force=q.get("force") == "1"))
+            return
+        if path == "/oauth/ticktick/start":
+            try:
+                self._redirect(ticktick.authorize_url(self.headers["Host"]))
+            except SourceError as e:
+                self._page(400, str(e))
+            return
+        if path == "/oauth/ticktick":
+            try:
+                if q.get("error"):
+                    raise SourceError("O TickTick negou o acesso: " + q["error"])
+                ticktick.finish_login(self.headers["Host"], q.get("code", ""), q.get("state", ""))
+                TICKTICK.invalidate()
+                self._redirect("/#ajustes")
+            except SourceError as e:
+                self._page(400, str(e))
             return
         if path == "/api/config":
             self._json(200, config.public())

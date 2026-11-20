@@ -1,4 +1,4 @@
-// Aba Ajustes: edita o config.json e os segredos do GLPI (que nunca voltam para a página).
+// Aba Ajustes: edita o config.json e os segredos (GLPI, TickTick) (que nunca voltam para a página).
 import { $, state, esc } from "./core.js";
 
 // tipos: text, textarea, number, bool, time, lines (uma por linha), areas (um nome por linha),
@@ -18,8 +18,12 @@ const SCHEMA = [
     ["vault.registro", "Nota-índice (opcional)", "text", "Cada pauta nova ganha um link aqui, se a nota existir."],
   ]],
   ["TickTick e noite", [
-    ["ticktick.ativo", "Ler o TickTick", "bool", "Usa a sessão do app desktop do TickTick (faça login nele)."],
-    ["ticktick.sessao", "Arquivo da sessão do app", "text", ""],
+    ["ticktick.ativo", "Ler o TickTick", "bool", "Pela Open API oficial quando há token; senão, pela sessão do app desktop."],
+    ["secret:HANGAR_TICKTICK_CLIENT_ID", "Client ID (Open API)", "secret", "developer.ticktick.com → Manage Apps → New App. Redirect URI: http://127.0.0.1:8023/oauth/ticktick"],
+    ["secret:HANGAR_TICKTICK_CLIENT_SECRET", "Client Secret (Open API)", "secret", "Salve os dois e clique em Conectar TickTick logo abaixo."],
+    ["oauth:ticktick", "Conectar TickTick", "oauth", "Abre o login do TickTick e grava o token no hangar.env."],
+    ["secret:HANGAR_TICKTICK_TOKEN", "Ou cole um access token", "secret", "Se você já tem um token da Open API."],
+    ["ticktick.sessao", "Arquivo da sessão do app (sem token)", "text", "Caminho antigo, só se não houver token."],
     ["noite.ativo", "Mostrar a aba Noite", "bool", ""],
     ["noite.titulo", "Título da noite", "text", ""],
     ["noite.fim", "A noite acaba às", "time", ""],
@@ -94,6 +98,10 @@ function field([path, label, type, help], cfg, locked, secrets) {
   const desc = hint ? ` aria-describedby="${id}-h"` : "";
   if (type === "bool") {
     return `<div class="cfg-f cfg-bool"><label><input type="checkbox" id="${id}" data-path="${path}" data-type="bool"${get(cfg, path) ? " checked" : ""}${dis}${desc}> ${esc(label)}</label>${helpEl}</div>`;
+  }
+  if (type === "oauth") {
+    const ok = secrets.HANGAR_TICKTICK_TOKEN;
+    return `<div class="cfg-f"><a class="btn btn-ghost" id="${id}" href="/oauth/ticktick/start">${esc(label)}</a>${ok ? ` <span class="muted small">token já definido</span>` : ""}${helpEl}</div>`;
   }
   if (type === "secret") {
     const key = path.slice(7); const has = secrets[key];
