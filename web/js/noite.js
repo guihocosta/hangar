@@ -44,8 +44,13 @@ function save() {
   clearTimeout(saving);
   saving = setTimeout(() => api("/api/session", state.session).catch((e) => toast(e.message)), 300);
 }
-function defaultStart() { const n = nowDate(); return Math.ceil((n.getHours() * 60 + n.getMinutes()) / 5) * 5; }
+// Dois momentos: planejando (sem start salvo, o início acompanha o relógio) e em andamento
+// (start fixo no arquivo da sessão). Só "Começar agora", o campo de horário ou concluir um bloco fixam o início.
+const nowM = () => { const n = nowDate(); return n.getHours() * 60 + n.getMinutes(); };
+function defaultStart() { return Math.ceil(nowM() / 5) * 5; }
 const startMin = () => (state.session.start != null ? state.session.start : defaultStart());
+const started = () => state.session.start != null && state.session.start <= nowM();
+function pinStart(m = nowM()) { if (state.session.start == null) state.session.start = m; }
 function timeline() {
   let cur = startMin();
   const blocks = state.session.blocks.map((b) => { const o = { ...b, from: cur, to: cur + b.min }; cur += b.min; return o; });
@@ -76,6 +81,16 @@ function suggest() {
   toast("Noite montada. Ajuste a ordem e os tempos à vontade.");
 }
 
+// Concluir fecha o bloco no horário real: terminou antes, o resto sobe; passou do tempo, o resto desce.
+function closeAtNow(b) {
+  b.done = true;
+  if (state.session.start == null) { pinStart(); return; }
+  const tl = timeline(); const cur = tl.blocks.find((x) => x.id === b.id); const n = nowM();
+  if (!cur || n <= cur.from || !started()) return; // feito fora de ordem, antes da vez: não mexe no horário
+  const real = Math.max(5, n - cur.from);
+  if (Math.abs(real - b.min) >= 3) b.min = real;
+}
+
 function move(id, dir) {
   const bs = state.session.blocks; const i = bs.findIndex((b) => b.id === id); const j = i + dir;
   if (i < 0 || j < 0 || j >= bs.length) return;
@@ -88,8 +103,15 @@ export function renderNoite() {
   if (!state.session) return;
   const now = nowDate(); const nowMin = now.getHours() * 60 + now.getMinutes(); const end = endMin();
   $("#left").textContent = end - nowMin > 0 ? fmtDur(end - nowMin) : "0 min";
-  const sm = startMin(); const input = $("#start-at");
+  const sm = startMin(); const input = $("#start-at"); const run = started(); const pinned = state.session.start != null;
   if (document.activeElement !== input) input.value = `${pad(Math.floor(sm / 60) % 24)}:${pad(sm % 60)}`;
+  $("#start-label").textContent = run ? "Começou às" : "Começa às";
+  $("#start-now").hidden = run || !state.session.blocks.length;
+  $("#suggest").className = `btn ${state.session.blocks.length ? "btn-ghost" : "btn-primary"}`;
+  $("#plan-status").innerHTML = !state.session.blocks.length ? ""
+    : run ? `<b>Em andamento.</b> Concluir um bloco fecha no horário real e o resto se ajusta. Precisa de mais tempo? Use <b>+10 min</b> no bloco atual.`
+    : pinned ? `<b>Agendada</b> para começar às <span class="num">${hm(minToDate(state.session.date, sm))}</span>. Comece antes, se quiser.`
+    : `<b>Planejando.</b> O início acompanha o relógio até você clicar em <b>Começar agora</b>.`;
   const tl = timeline(); const planned = tl.blocks.reduce((a, b) => a + b.min, 0); const slack = end - tl.end;
   $("#planned").textContent = fmtDur(planned);
   $("#slack").textContent = slack >= 0 ? fmtDur(slack) : `passou ${fmtDur(-slack)}`;
@@ -97,16 +119,22 @@ export function renderNoite() {
   const over = nowMin >= end;
   $("#rail-over").hidden = !over;
   $("#rail-empty").hidden = over || tl.blocks.length > 0;
+  const isDoneB = (x) => x.done || (x.taskId && taskById(x.taskId)?.done);
+  const anyOver = run && tl.blocks.some((x) => !isDoneB(x) && nowMin >= x.to && nowMin - x.to < 180 && !tl.blocks.some((y) => y.from >= x.to && y.from <= nowMin && isDoneB(y)));
   const rows = tl.blocks.map((b) => {
     const t = b.taskId ? taskById(b.taskId) : null; const p = b.projectId ? projectInfo(b.projectId) : null;
     const cls = ["block", `is-${b.kind}`];
     if (b.done || (t && t.done) || (b.kind === "task" && !t && tt())) cls.push("is-done");
     if (nowMin >= b.from && nowMin - b.from < 8) cls.push("is-now-start");
     if (nowMin >= b.from && nowMin < b.to) cls.push("is-current");
+    const overrun = run && !b.done && !(t && t.done) && b.kind !== "slack" && nowMin >= b.to && nowMin - b.to < 180
+      && !tl.blocks.some((x) => x.from >= b.to && x.from <= nowMin && (x.done || (x.taskId && taskById(x.taskId)?.done))); // ninguém depois dele já foi feito
+    if (overrun) cls.push("is-over");
     if (nowMin >= b.to) cls.push("is-past");
     const meta = [];
     if (p) meta.push(`<span style="color:${p.color}">${esc(p.name)}</span>`);
     if (b.kind === "habit") meta.push("<span>Hábito</span>");
+    if (overrun) meta.push(`<span class="late">passou ${fmtDur(nowMin - b.to)} do previsto</span>`);
     if (t && isLate(t)) meta.push(`<span class="late">atrasada ${rel(shortKey(t))}</span>`);
     if (t) meta.push(inds(t));
     const opts = [...new Set([...DUR, b.min])].sort((a, c) => a - c).map((m) => `<option value="${m}"${m === b.min ? " selected" : ""}>${fmtDur(m)}</option>`).join("");
@@ -118,6 +146,7 @@ export function renderNoite() {
       ${check}
       <div class="block-body">${titleHTML(t, b.title, "block-title")}${meta.length ? `<p class="row-meta">${meta.join("")}</p>` : ""}</div>
       <div class="tools">
+        ${!done && run && (overrun || (cls.includes("is-current") && !anyOver)) ? `<button type="button" class="btn btn-ghost btn-sm" data-act="more" title="Mais 10 minutos neste bloco; o resto desce">+10 min</button>` : ""}
         <select aria-label="Duração de ${esc(b.title)}" data-act="dur">${opts}</select>
         <span class="tools-more">
           <button type="button" class="btn btn-text btn-icon" data-act="up" aria-label="Subir ${esc(b.title)}" title="Subir">${icon.up}</button>
@@ -162,12 +191,13 @@ export function bindNoite({ complete, checkin, postpone }) {
   $("#suggest").addEventListener("click", suggest);
   $("#add-pause").addEventListener("click", () => { state.session.blocks.push({ id: uid(), kind: "pause", title: "Pausa", min: 10 }); save(); renderNoite(); });
   $("#clear").addEventListener("click", () => {
-    const prev = state.session.blocks; if (!prev.length) return;
-    state.session.blocks = []; save(); renderNoite();
+    const prev = state.session.blocks; const prevStart = state.session.start; if (!prev.length) return;
+    state.session.blocks = []; state.session.start = null; save(); renderNoite();
     toast("Noite limpa. Ctrl+Z desfaz por 5 segundos.");
-    const undo = (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "z") { state.session.blocks = prev; save(); renderNoite(); toast("Desfeito."); } };
+    const undo = (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "z") { state.session.blocks = prev; state.session.start = prevStart; save(); renderNoite(); toast("Desfeito."); } };
     document.addEventListener("keydown", undo); setTimeout(() => document.removeEventListener("keydown", undo), 5000);
   });
+  $("#start-now").addEventListener("click", () => { state.session.start = nowM(); save(); renderNoite(); toast("Começou. O horário ficou fixo; feche os blocos conforme for terminando."); });
   $("#start-at").addEventListener("change", (e) => { if (e.target.value) { state.session.start = parseHM(e.target.value); save(); renderNoite(); } });
   $("#rail").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]"); if (!btn) return;
@@ -176,10 +206,10 @@ export function bindNoite({ complete, checkin, postpone }) {
     if (act === "up") move(id, -1);
     if (act === "down") move(id, 1);
     if (act === "remove") { state.session.blocks = state.session.blocks.filter((x) => x.id !== id); save(); renderNoite(); }
+    if (act === "more") { b.min += 10; save(); renderNoite(); toast("Mais 10 min. O resto da noite desceu junto."); }
     if (act === "done") {
-      if (b.kind === "pause") { b.done = true; save(); renderNoite(); return; }
-      const ok = b.kind === "task" ? await complete({ id: b.taskId, projectId: b.projectId }, btn) : await checkin(b.habitId, btn);
-      if (ok) { b.done = true; save(); renderNoite(); }
+      const ok = b.kind === "pause" ? true : b.kind === "task" ? await complete({ id: b.taskId, projectId: b.projectId }, btn) : await checkin(b.habitId, btn);
+      if (ok) { closeAtNow(b); save(); renderNoite(); }
     }
   });
   $("#rail").addEventListener("change", (e) => {

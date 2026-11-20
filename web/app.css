@@ -155,6 +155,11 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .stats dd { margin: 0; font-family: var(--font-display); font-size: var(--text-xl); }
 .stats input { font-family: var(--font-display); font-size: var(--text-lg); }
 .plan-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.plan-status { font-size: var(--text-sm); color: var(--color-ink-2); max-width: 46rem; }
+.plan-status:empty { display: none; }
+.plan-status b { color: var(--color-ink); }
+.block.is-over { background: color-mix(in oklch, var(--color-error) 8%, transparent); }
+.block.is-over::before { content: ""; position: absolute; left: -2px; top: 0; bottom: 0; width: 2px; background: var(--color-error); }
 .rail-wrap { position: relative; }
 .rail { list-style: none; margin: 0 0 0 var(--rail-time); padding: 0; position: relative; border-left: 2px solid var(--color-field); }
 .block { position: relative; min-height: max(var(--block-min), calc(var(--min) * var(--px-min))); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-md); align-items: start; padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-rule); }
