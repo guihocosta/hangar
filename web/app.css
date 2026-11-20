@@ -157,7 +157,7 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .plan-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .rail-wrap { position: relative; }
 .rail { list-style: none; margin: 0 0 0 var(--rail-time); padding: 0; position: relative; border-left: 2px solid var(--color-field); }
-.block { position: relative; min-height: max(var(--block-min), calc(var(--min) * var(--px-min))); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-md); align-items: start; padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-rule); }
+.block { position: relative; min-height: max(var(--block-min), calc(var(--min) * var(--px-min))); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-md); align-items: start; padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-rule); }
 .block:first-child { border-top: 1px solid var(--color-rule); }
 .block-time { position: absolute; left: calc(-1 * var(--rail-time) - 2px); top: var(--space-sm); width: calc(var(--rail-time) - var(--space-sm)); text-align: right; font-family: var(--font-display); color: var(--color-ink-2); }
 .block-title { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
@@ -173,7 +173,24 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .block.is-current .block-time { color: var(--color-accent); }
 .block.is-done .block-title { text-decoration: line-through; color: var(--color-muted); font-weight: 400; }
 .block.is-past:not(.is-current) .block-time { color: var(--color-muted); }
-.block:not(:hover):not(:focus-within) .tools .btn-text { opacity: 0.45; }
+.block .ag-check { margin-top: 2px; }
+.block-body { min-width: 0; }
+.block.is-prova { box-shadow: inset 3px 0 0 var(--color-accent); }
+.tools-more { display: inline-flex; gap: 2px; opacity: 0; transition: opacity var(--dur-micro) var(--ease-out); }
+.block:hover .tools-more, .block:focus-within .tools-more { opacity: 1; }
+@media (hover: none) { .tools-more { opacity: 1; } }
+/* título que abre os detalhes: parece texto, age como botão */
+.task-open { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-xs); width: 100%; text-align: left; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; }
+.task-open:hover > span:last-child { text-decoration: underline; text-decoration-color: var(--color-rule-2); text-underline-offset: 3px; }
+.block-title.task-open { font-weight: 700; }
+.block.is-done .task-open > span:last-child { text-decoration: line-through; }
+.q-row { grid-template-columns: minmax(0, 1fr) auto; }
+.h-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+.h-row .ag-check { margin-top: 0; }
+.q-row.is-prova .row-title > span:last-child, .q-row.is-entrega .row-title > span:last-child { font-weight: 700; }
+.q-in { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--color-success); white-space: nowrap; }
+.q-in svg { width: 12px; height: 12px; }
+.drawer-noite p { font-size: var(--text-sm); color: var(--color-ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
 .now { position: absolute; left: 0; right: 0; top: 0; height: 0; border-top: 2px solid var(--color-accent); z-index: var(--z-raised); pointer-events: none; transform: translateY(var(--y, 0)); }
 .now span { position: absolute; left: 0; top: -0.75em; width: calc(var(--rail-time) - var(--space-sm)); padding-right: var(--space-2xs); text-align: right; font-family: var(--font-display); font-size: var(--text-sm); font-weight: 700; color: var(--color-accent-ink); background: var(--color-accent); border-radius: 6px; }
 .rail-end { margin: 0; padding: var(--space-sm) 0 0; display: flex; gap: var(--space-md); align-items: baseline; color: var(--color-ink-2); }
@@ -451,7 +468,8 @@ input[type="checkbox"]:checked::after { opacity: 1; }
   .ag-radar { grid-template-columns: minmax(0, 1fr); }
   .ag-search, .ag-search input { width: 100%; }
   .ag-flabel { min-width: 0; width: 100%; }
-  .block { grid-template-columns: minmax(0, 1fr); }
+  .block { grid-template-columns: auto minmax(0, 1fr); }
+  .block .tools { grid-column: 2; }
   .mcell { min-height: 4rem; }
   .mitem, .mmore { display: none; }
   .mcount { display: block; font-size: var(--text-xs); color: var(--color-muted); }

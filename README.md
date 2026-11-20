@@ -11,7 +11,7 @@ Hub local do dia, em português, que roda na sua máquina (http://127.0.0.1:8023
 | Aba | O que mostra |
 |---|---|
 | **Hoje** | A pauta do dia (com checkboxes clicáveis), o que vence hoje, os cards e reviews e as pendências soltas |
-| **Noite** | A noite em blocos até o horário de fim que você escolher |
+| **Noite** | A noite em blocos até o horário de fim que você escolher. Cada bloco tem o círculo de concluir e a duração; subir, descer e tirar aparecem ao passar o mouse. Clicar numa tarefa (aqui, na Agenda ou em Hoje) abre o mesmo painel de detalhes, que também encaixa a tarefa na noite ou tira dela |
 | **Agenda** | Lista, semana ou mês do TickTick, com radar (atrasadas, hoje, próximos prazos), filtros por tipo, código e lista e busca. Cada item tem um círculo de concluir; clicar nele abre os detalhes (notas, checklist, datas, etiquetas), com adiar 1 dia ou 1 semana e o link para abrir no TickTick (`ticktick.url_tarefa`). O que conta como prazo é configurável em Ajustes → Agenda |
 | **Trabalho** | Cards, PRs, pendências da área de trabalho e o painel do GLPI (o nome da aba é configurável) |
 | **Ideias** | Quadro Ideia → Explorando → Proposta → Virou card, e o botão "Sugerir caminhos" |

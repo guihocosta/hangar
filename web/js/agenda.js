@@ -1,56 +1,8 @@
-import { $, $$, state, esc, md, WD, WDS, MONTHS, pad, dayKey, todayKey, addDays, startOfWeek, shortDate, taskDay, isLate, taskTime, projectInfo, tt, pref, icon } from "./core.js";
+import { $, $$, state, esc, WD, WDS, MONTHS, pad, dayKey, todayKey, addDays, startOfWeek, shortDate, taskDay, isLate, taskTime, projectInfo, tt, pref, icon } from "./core.js";
+import { MABBR, rules, janela, parts, kind, diffDays, rel, badge, matTag, ICON_NOTE, ICON_LIST, refreshTask, taskOpen } from "./tarefa.js";
 
-/* ---------- regras (Ajustes → Agenda) ---------- */
-// Tudo o que decide "o que é prazo" vem da config; o servidor manda os padrões quando falta algo.
-const MABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const norm = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const reEsc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const words = (list) => { const l = (list || []).map((w) => norm(w).trim()).filter(Boolean); return l.length ? new RegExp(`(^|[^a-z0-9])(${l.map(reEsc).join("|")})`) : null; };
-const label = (v, fb) => { const [one, many] = String(v || fb).split("/").map((x) => x.trim()); return { one: one || fb, many: many || `${one || fb}s` }; };
-let R = null; let Rsrc = null;
-function rules() {
-  const c = state.cfg?.agenda || {};
-  if (R && Rsrc === c) return R;
-  cacheParts.clear();
-  let code = null;
-  try { code = c.regex_codigo === "" ? null : new RegExp(c.regex_codigo ?? "^\\[([^\\]]{1,12})\\]\\s*"); } catch { console.warn("Hangar: regex_codigo inválida, códigos desligados"); }
-  Rsrc = c;
-  R = {
-    code, codeLabel: c.rotulo_codigo || "Códigos",
-    prova: words(c.palavras_prova ?? ["prova"]), naoProva: words(c.nao_prova ?? []),
-    entrega: words(c.palavras_entrega ?? []), ignorar: (c.ignorar || []).map(norm).filter(Boolean),
-    prio: Number(c.prioridade_entrega ?? 3) || 0,
-    lp: label(c.rotulo_prova, "prova"), le: label(c.rotulo_entrega, "entrega"),
-    semanas: Math.max(1, Number(c.semanas_lista) || 4), radar: Math.max(1, Number(c.dias_radar) || 21),
-  };
-  return R;
-}
-const janela = (d) => (d % 7 === 0 ? `${d / 7} ${d === 7 ? "semana" : "semanas"}` : `${d} dias`);
-
-/* ---------- leitura das tarefas ---------- */
-// Com o padrão, "[CALC] 7.4: 20, 36" vira código CALC e título "7.4: 20, 36".
-const cacheParts = new Map();
-function parts(t) {
-  const key = t.title; if (cacheParts.has(key)) return cacheParts.get(key);
-  const re = rules().code; const m = re ? t.title.match(re) : null;
-  const v = m && m[1] ? { mat: m[1].trim().toUpperCase(), title: t.title.slice(m[0].length) || t.title } : { mat: null, title: t.title };
-  cacheParts.set(key, v); return v;
-}
-// Peso do item: prova (prazo forte) > entrega (prazo comum) > nada.
-function kind(t) {
-  const r = rules(); const s = norm(parts(t).title);
-  if (r.ignorar.some((w) => s.includes(w))) return null;
-  if (r.prova?.test(s) && !r.naoProva?.test(s)) return "prova";
-  if (r.entrega?.test(s) || (r.prio && t.priority >= r.prio)) return "entrega";
-  return null;
-}
 const byTime = (a, b) => (a.done !== b.done ? (a.done ? 1 : -1)
   : (kind(a) ? 0 : 1) - (kind(b) ? 0 : 1) || (a.allDay === b.allDay ? (a.start || "").localeCompare(b.start || "") : a.allDay ? -1 : 1));
-const diffDays = (k) => Math.round((new Date(k + "T12:00") - new Date(todayKey() + "T12:00")) / 86400000);
-function rel(k) {
-  const n = diffDays(k);
-  return n === 0 ? "hoje" : n === 1 ? "amanhã" : n === -1 ? "ontem" : n > 0 ? `em ${n} dias` : `há ${-n} dias`;
-}
 
 /* ---------- filtros (lembrados no navegador) ---------- */
 const F = { q: "", foco: "tudo", listas: [], mats: [], feitas: false };
@@ -70,13 +22,6 @@ const visible = () => allTasks().filter(passes);
 const tasksOn = (k, list = visible()) => list.filter((t) => taskDay(t) === k).sort(byTime);
 
 /* ---------- peças ---------- */
-function badge(t) {
-  const k = kind(t);
-  return k === "prova" ? `<span class="ag-kind is-prova">${esc(rules().lp.one)}</span>` : k === "entrega" ? `<span class="ag-kind">${esc(rules().le.one)}</span>` : "";
-}
-function matTag(mat) { return mat ? `<span class="ag-mat" data-mat="${esc(mat)}">${esc(mat)}</span>` : ""; }
-const ICON_NOTE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.5h10M3 6.5h10M3 9.5h6"/></svg>';
-const ICON_LIST = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m2.5 4 1.2 1.2L6 3M2.5 9l1.2 1.2L6 8M8.5 4.2H14M8.5 9.2H14"/></svg>';
 // Linha enxuta: um círculo de concluir e o resto abre os detalhes. Adiar e abrir no TickTick ficam no painel.
 function itemHTML(t, { compact = false, showDay = false } = {}) {
   const p = projectInfo(t.projectId); const tm = taskTime(t); const late = isLate(t); const { mat, title } = parts(t); const k = kind(t);
@@ -92,47 +37,7 @@ function itemHTML(t, { compact = false, showDay = false } = {}) {
     ? `<span class="ag-check is-on" aria-hidden="true">${icon.check}</span>`
     : `<button type="button" class="ag-check" data-act="done" aria-label="Concluir ${esc(title)}" title="Concluir">${icon.check}</button>`;
   return `<div class="ag-item${late ? " is-late" : ""}${t.done ? " is-done" : ""}${k ? ` is-${k}` : ""}${compact ? " is-compact" : ""}" data-task="${t.id}" style="--lc:${p.color}">
-    ${check}<button type="button" class="ag-open" data-open aria-haspopup="dialog"><span class="ag-title">${matTag(mat)}${badge(t)}<span>${esc(title)}</span></span>${meta ? `<span class="ag-meta">${meta}</span>` : ""}</button></div>`;
-}
-
-/* ---------- detalhes ---------- */
-const PRIO = { 5: "alta", 3: "média", 1: "baixa" };
-function taskUrl(t) {
-  const tpl = state.cfg?.ticktick?.url_tarefa || "https://ticktick.com/webapp/#p/{projeto}/tasks/{id}";
-  return tpl.replace("{id}", encodeURIComponent(t.id)).replace("{projeto}", encodeURIComponent(t.projectId));
-}
-function whenText(t) {
-  const k = taskDay(t); if (!k) return "Sem data";
-  const d = new Date(k + "T12:00"); const tm = taskTime(t);
-  return `${WD[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}${tm ? ` às ${tm}` : ""}`;
-}
-let openId = null;
-function renderDetail() {
-  const dlg = $("#ag-detail"); const t = allTasks().find((x) => x.id === openId);
-  if (!t) { if (dlg.open) dlg.close(); return; }
-  const p = projectInfo(t.projectId); const { mat, title } = parts(t); const late = isLate(t); const k = taskDay(t);
-  const chips = [matTag(mat), badge(t), PRIO[t.priority] ? `<span class="tag">prioridade ${PRIO[t.priority]}</span>` : "",
-    t.repeat ? `<span class="tag">repete</span>` : "", ...(t.tags || []).map((g) => `<span class="tag">#${esc(g)}</span>`)].filter(Boolean).join("");
-  const cl = t.checklist || [];
-  dlg.innerHTML = `<div class="drawer-in" style="--lc:${p.color}">
-    <header class="drawer-h"><p class="eyebrow"><span class="ag-dot" aria-hidden="true"></span>${esc(p.name)}</p>
-      <button type="button" class="btn btn-text btn-icon" data-close aria-label="Fechar detalhes">${icon.x}</button></header>
-    <h2 id="agd-h" class="drawer-t${t.done ? " is-done" : ""}">${esc(title)}</h2>
-    ${chips ? `<div class="drawer-chips">${chips}</div>` : ""}
-    <p class="drawer-when${late ? " late" : ""}"><b>${esc(whenText(t))}</b>${k ? ` · ${t.done ? "feita" : late ? `atrasada ${rel(k)}` : rel(k)}` : ""}</p>
-    ${cl.length ? `<section class="drawer-sec"><h3>Checklist <span class="count num">${t.itemsDone}/${t.items}</span></h3><ul class="drawer-cl">${cl.map((i) => `<li class="${i.done ? "is-on" : ""}">${i.done ? icon.check : "<i></i>"}<span>${esc(i.title)}</span></li>`).join("")}</ul></section>` : ""}
-    ${t.content ? `<section class="drawer-sec"><h3>Notas</h3><div class="drawer-md">${md(t.content)}</div></section>` : ""}
-    <footer class="drawer-f">
-      ${t.done ? "" : `<button type="button" class="btn btn-primary" data-act="done">${icon.check} Concluir</button>
-      ${k ? `<div class="drawer-later" role="group" aria-label="Adiar"><span>Adiar</span><button type="button" class="btn btn-ghost btn-sm" data-act="later" data-days="1">1 dia</button><button type="button" class="btn btn-ghost btn-sm" data-act="later" data-days="7">1 semana</button></div>` : ""}`}
-      <a class="btn btn-text" href="${esc(taskUrl(t))}" target="_blank" rel="noopener">Abrir no TickTick ${icon.ext}</a>
-    </footer></div>`;
-  dlg.dataset.task = t.id;
-}
-function openDetail(id) {
-  openId = id; renderDetail();
-  const dlg = $("#ag-detail"); if (!dlg.open) dlg.showModal();
-  dlg.querySelector("[data-close]")?.focus();
+    ${check}<button type="button" class="ag-open" data-open-task="${t.id}" aria-haspopup="dialog"><span class="ag-title">${matTag(mat)}${badge(t)}<span>${esc(title)}</span></span>${meta ? `<span class="ag-meta">${meta}</span>` : ""}</button></div>`;
 }
 
 /* ---------- radar ---------- */
@@ -265,7 +170,7 @@ export function renderAgenda() {
   renderFilters();
   if (focused) { const q = $("#ag-q"); q.focus(); q.setSelectionRange(caret, caret); }
   if (sc === "lista") renderLista(); else if (sc === "semana") renderWeek(); else renderMonth();
-  if (openId && $("#ag-detail").open) renderDetail();
+  refreshTask();
 }
 
 /* ---------- interação ---------- */
@@ -298,15 +203,10 @@ export function bindAgenda({ complete, postpone }) {
     const act = e.target.closest("button[data-act]");
     if (act) {
       const t = allTasks().find((x) => x.id === act.closest("[data-task]")?.dataset.task); if (!t) return;
-      const inDrawer = !!act.closest("#ag-detail");
-      const row = act.closest(".ag-item"); if (row && act.dataset.act === "done") row.classList.add("is-leaving");
-      const run = act.dataset.act === "done" ? complete({ id: t.id, projectId: t.projectId }, act) : postpone(t, act, Number(act.dataset.days));
-      Promise.resolve(run).then((ok) => { if (ok && inDrawer) $("#ag-detail").close(); if (!ok) row?.classList.remove("is-leaving"); });
+      const row = act.closest(".ag-item"); row?.classList.add("is-leaving");
+      Promise.resolve(complete({ id: t.id, projectId: t.projectId }, act)).then((ok) => { if (!ok) row?.classList.remove("is-leaving"); });
       return;
     }
-    const op = e.target.closest("[data-open]"); if (op) { openDetail(op.closest("[data-task]").dataset.task); return; }
-    if (e.target.closest("#ag-detail [data-close]")) { $("#ag-detail").close(); return; }
-    if (e.target.id === "ag-detail") { $("#ag-detail").close(); return; } // clique no fundo
     const f = e.target.closest("[data-foco]");
     if (f) { F.foco = F.foco === f.dataset.foco && f.closest("#ag-radar") ? "tudo" : f.dataset.foco; saveFilters(); renderAgenda(); return; }
     const g = e.target.closest("[data-goto]"); if (g) { goto(g.dataset.goto); return; }
@@ -320,9 +220,8 @@ export function bindAgenda({ complete, postpone }) {
   view.addEventListener("input", (e) => { if (e.target.id === "ag-q") { F.q = e.target.value; renderAgenda(); } });
   view.addEventListener("change", (e) => { if (e.target.id === "ag-feitas") { F.feitas = e.target.checked; saveFilters(); renderAgenda(); } });
   view.addEventListener("toggle", (e) => { if (e.target.matches?.(".ag-nodate")) pref("agendaSemData", e.target.open); }, true);
-  $("#ag-detail").addEventListener("close", () => { openId = null; });
   document.addEventListener("keydown", (e) => {
-    if ($("#ag-detail").open) return;
+    if (taskOpen()) return;
     if (state.view !== "agenda" || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.target.closest("input, textarea, select")) { if (e.key === "Escape" && e.target.id === "ag-q") { F.q = ""; e.target.blur(); renderAgenda(); } return; }
     const k = e.key.toLowerCase();

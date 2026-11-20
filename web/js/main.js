@@ -6,6 +6,7 @@ import { renderTrabalho, bindTrabalho } from "./trabalho.js";
 import { renderIdeias, bindIdeias } from "./ideias.js";
 import { renderAjustes, bindAjustes } from "./ajustes.js";
 import { renderFoco, bindFoco, loadFoco } from "./foco.js";
+import { bindTarefa, refreshTask, taskOpen } from "./tarefa.js";
 
 const ALL_VIEWS = { hoje: renderHoje, noite: renderNoite, agenda: renderAgenda, trabalho: renderTrabalho, ideias: renderIdeias, foco: renderFoco, ajustes: renderAjustes };
 const ORDER = ["hoje", "noite", "agenda", "trabalho", "ideias", "foco", "ajustes"];
@@ -52,7 +53,7 @@ async function saveConfig(body, btn) {
 }
 let followUp = null;
 
-function render() { VIEWS[state.view]?.(); renderSources(); }
+function render() { VIEWS[state.view]?.(); refreshTask(); renderSources(); }
 
 function renderSources() {
   const rows = Object.entries(state.src).map(([k, p]) => {
@@ -137,6 +138,7 @@ function bind() {
     const t = state.src.ticktick.data.tasks.find((x) => x.id === b.closest("[data-task]").dataset.task);
     complete({ id: t.id, projectId: t.projectId }, b);
   });
+  bindTarefa({ complete, postpone });
   bindNoite({ complete, checkin, postpone });
   bindAgenda({ complete, postpone });
   bindTrabalho();
@@ -147,7 +149,7 @@ function bind() {
     ask: (foco, btn) => busy(btn, async () => { await api("/api/ideias/gerar", { foco }); await loadAll(); }),
   });
   document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select")) return;
+    if (taskOpen() || e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select")) return;
     const views = ORDER.filter((v) => VIEWS[v]);
     if (/^[1-9]$/.test(e.key) && views[Number(e.key) - 1]) { location.hash = views[Number(e.key) - 1]; }
     else if (e.key === "r" || e.key === "R") { $("#sync-btn").click(); }
