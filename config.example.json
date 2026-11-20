@@ -63,7 +63,10 @@
     "ignorar": [],
     "prioridade_entrega": 5,
     "rotulo_prova": "marco/marcos",
-    "rotulo_entrega": "entrega/entregas"
+    "rotulo_entrega": "entrega/entregas",
+    "etiqueta_prova": "marco",
+    "etiqueta_entrega": "entrega",
+    "etiqueta_nenhum": "sem-prazo"
   },
   "trabalho": {
     "ativo": true,

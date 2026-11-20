@@ -333,6 +333,19 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .drawer-h .eyebrow { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--lc); margin: 0; }
 .drawer-t { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
 .drawer-t.is-done { text-decoration: line-through; color: var(--color-muted); }
+.drawer-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-xs); align-items: start; }
+.drawer-kind { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.seg-sm button { min-height: 26px; padding: 0 var(--space-sm); font-size: var(--text-xs); text-transform: none; letter-spacing: 0; }
+.seg button[aria-checked="true"] { background: var(--color-paper-3); color: var(--color-ink); }
+.seg button[data-kind="prova"][aria-checked="true"] { background: var(--color-accent); color: var(--color-accent-ink); }
+.drawer-edit { display: grid; gap: var(--space-sm); }
+.drawer-edit label { display: grid; gap: var(--space-2xs); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); }
+.drawer-edit input, .drawer-edit textarea { font: inherit; font-size: var(--text-md); text-transform: none; letter-spacing: 0; color: var(--color-ink); background: var(--color-paper); border: 1px solid var(--color-rule-2); border-radius: 8px; padding: var(--space-xs) var(--space-sm); width: 100%; }
+.drawer-edit input { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600; }
+.drawer-edit textarea { resize: vertical; min-height: 8rem; line-height: 1.5; }
+.drawer-edit-f { display: flex; gap: var(--space-xs); }
+.drawer-add-note { justify-self: start; border: 1px dashed var(--color-rule-2); background: transparent; color: var(--color-muted); border-radius: 8px; padding: var(--space-xs) var(--space-sm); font: inherit; font-size: var(--text-sm); }
+.drawer-add-note:hover { color: var(--color-ink); border-color: var(--color-field); }
 .drawer-chips { display: flex; flex-wrap: wrap; gap: var(--space-2xs); align-items: center; }
 .drawer-when { font-size: var(--text-sm); color: var(--color-ink-2); }
 .drawer-when b { text-transform: capitalize; font-weight: 700; color: var(--color-ink); }

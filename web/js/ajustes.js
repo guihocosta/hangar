@@ -47,6 +47,9 @@ const SCHEMA = [
     ["agenda.palavras_entrega", "Palavras que marcam o prazo comum", "lines", ""],
     ["agenda.prioridade_entrega", "Prioridade que já conta como prazo", "number", "Do TickTick: 1 baixa, 3 média, 5 alta. 0 = não usar."],
     ["agenda.ignorar", "Títulos que nunca são prazo", "lines", "Trechos. Ex.: levar: (lembretes do que levar a algum lugar)."],
+    ["agenda.etiqueta_prova", "Etiqueta para marcar prova à mão", "text", "O botão Tipo no painel da tarefa grava esta etiqueta no TickTick. Ela vale mais que as palavras."],
+    ["agenda.etiqueta_entrega", "Etiqueta para marcar entrega à mão", "text", ""],
+    ["agenda.etiqueta_nenhum", "Etiqueta para dizer que não é prazo", "text", "Tira uma tarefa do radar mesmo que o título case com as palavras."],
   ]],
   ["Trabalho no GitHub", [
     ["trabalho.ativo", "Ler cards e PRs do GitHub", "bool", "Usa o gh CLI já logado (gh auth login)."],

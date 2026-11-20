@@ -251,6 +251,33 @@ def postpone_task(body):
     _save_task(obj)
 
 
+def _apply_edit(obj, body):
+    """Só o que veio no corpo muda; o resto do objeto volta inteiro (update parcial apaga campos)."""
+    if "title" in body:
+        title = str(body["title"]).strip()
+        if not title:
+            raise SourceError("O título não pode ficar vazio.")
+        obj["title"] = title[:500]
+    if "content" in body:  # tarefa com checklist guarda a descrição em desc
+        obj["desc" if obj.get("kind") == "CHECKLIST" else "content"] = str(body["content"])[:20000]
+    if "tags" in body:
+        tags = body["tags"]
+        if not isinstance(tags, list) or not all(isinstance(t, str) and t.strip() for t in tags):
+            raise SourceError("Etiquetas inválidas.")
+        obj["tags"] = [t.strip() for t in tags][:50]
+
+
+def update_task(body):
+    if mode() == "api":
+        obj = op("GET", f"/project/{body['projectId']}/task/{body['id']}")
+        _apply_edit(obj, body)
+        op("POST", f"/task/{body['id']}", obj)
+        return
+    obj = _full_task(body["id"], body["projectId"])
+    _apply_edit(obj, body)
+    _save_task(obj)
+
+
 def checkin_habit(body):
     now = tt_now()  # a Open API não tem hábitos: sempre pela sessão do app
     stamp = int(date.today().strftime("%Y%m%d"))

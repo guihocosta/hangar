@@ -95,6 +95,10 @@ async function postpone(t, btn, days = 1) {
   return busy(btn, async () => { await api("/api/task/postpone", { id: t.id, projectId: t.projectId, days }); toast(days === 1 ? "Empurrada um dia no TickTick." : `Empurrada ${days} dias no TickTick.`); await loadSrc("ticktick"); return true; });
 }
 
+async function update(body, btn, msg = "Salvo no TickTick.") {
+  return busy(btn, async () => { await api("/api/task/update", body); toast(msg); await loadSrc("ticktick"); return true; });
+}
+
 function route() {
   const raw = location.hash.slice(1) || (state.cfgInfo && !state.cfgInfo.exists ? "ajustes" : "hoje");
   const v = raw === "sessao" ? "noite" : raw;
@@ -138,7 +142,7 @@ function bind() {
     const t = state.src.ticktick.data.tasks.find((x) => x.id === b.closest("[data-task]").dataset.task);
     complete({ id: t.id, projectId: t.projectId }, b);
   });
-  bindTarefa({ complete, postpone });
+  bindTarefa({ complete, postpone, update, changed: () => VIEWS[state.view]?.() });
   bindNoite({ complete, checkin, postpone });
   bindAgenda({ complete, postpone });
   bindTrabalho();
