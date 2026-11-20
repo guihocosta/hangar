@@ -44,7 +44,7 @@ export function prRow(p) {
   const checks = { SUCCESS: ["ok", "checks ok"], FAILURE: ["bad", "checks falhando"], ERROR: ["bad", "checks com erro"], PENDING: ["wait", "checks rodando"] }[p.checks];
   return `<li class="row">
     <div><p class="row-title"><span class="tagcode">${esc(shortRepo(p.repo))}#${p.number}</span> ${esc(p.title)}</p>
-    <p class="row-meta">${p.author ? `<span>${esc(p.author)}</span>` : ""}<span class="${age >= 2 ? "warn" : ""}">${age === 0 ? "aberto hoje" : `há ${age} d`}</span>${checks ? `<span class="dot dot-${checks[0]}">${checks[1]}</span>` : ""}${p.draft ? "<span>rascunho</span>" : ""}${p.decision === "CHANGES_REQUESTED" ? '<span class="warn">mudanças pedidas</span>' : p.decision === "APPROVED" ? "<span>aprovado</span>" : ""}</p></div>
+    <p class="row-meta">${p.author ? `<span>${esc(p.author)}</span>` : ""}<span class="${age >= 2 ? "warn" : ""}">${age === 0 ? "aberto hoje" : `há ${age} d`}</span>${checks ? `<span class="dot-${checks[0]}">${checks[1]}</span>` : ""}${p.draft ? "<span>rascunho</span>" : ""}${p.decision === "CHANGES_REQUESTED" ? '<span class="warn">mudanças pedidas</span>' : p.decision === "APPROVED" ? "<span>aprovado</span>" : ""}</p></div>
     <a class="btn btn-text btn-icon" href="${esc(p.url)}" target="_blank" rel="noopener" aria-label="Abrir PR ${p.number}">${icon.ext}</a></li>`;
 }
 
