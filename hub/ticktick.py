@@ -1,7 +1,8 @@
 """TickTick por dois caminhos, escolhidos sozinhos:
 
 - **Open API oficial** (`api.ticktick.com/open/v1`), quando há `HANGAR_TICKTICK_TOKEN` (hangar.env ou
-  ambiente). O token sai do login OAuth feito pela aba Ajustes ou é colado à mão. Não tem hábitos.
+  ambiente). O token sai do login OAuth feito pela aba Ajustes ou é colado à mão. Não tem hábitos: esses
+  continuam pela sessão do app quando ela existe.
 - **Sessão do app desktop** (`ticktick.sessao`), o caminho antigo, quando não há token.
 
 O token nunca sai do servidor. As leituras independentes rodam em paralelo.
@@ -105,14 +106,14 @@ def _api_fetch():
         return [_task(t, True) for t in rows or [] if isinstance(t, dict) and t.get("id")]
 
     with ThreadPoolExecutor(6) as ex:
-        f_done = ex.submit(completed)
+        f_done, f_hab = ex.submit(completed), ex.submit(_habits)  # hábitos: só pela sessão do app, se houver
         lists = list(ex.map(data, [p["id"] for p in projects]))
     inbox_ids = {t.get("projectId") for t in lists[0]}
     for p in projects:  # o inbox real tem id "inboxNNN"; os cards apontam para ele
         if p["id"] == "inbox" and inbox_ids:
             p["id"] = next(iter(inbox_ids))
     tasks = [_task(t) for ts in lists for t in ts if t.get("status", 0) == 0]
-    return {"projects": projects, "tasks": tasks + f_done.result(), "habits": None, "mode": "api"}
+    return {"projects": projects, "tasks": tasks + f_done.result(), "habits": f_hab.result(), "mode": "api"}
 
 
 def _api_complete(body):
@@ -245,9 +246,7 @@ def postpone_task(body):
 
 
 def checkin_habit(body):
-    if mode() == "api":
-        raise SourceError("A Open API do TickTick não tem hábitos; faça o check-in no app.")
-    now = tt_now()
+    now = tt_now()  # a Open API não tem hábitos: sempre pela sessão do app
     stamp = int(date.today().strftime("%Y%m%d"))
     tt("POST", "/habitCheckins/batch", {"add": [{
         "id": secrets.token_hex(12), "habitId": body["habitId"], "checkinStamp": stamp,
