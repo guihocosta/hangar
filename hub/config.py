@@ -66,6 +66,8 @@ DEFAULTS = {
         "escalar": False,  # sobe a prioridade conforme o prazo chega e grava no TickTick
         "media_dias": 7,  # prazo em até N dias: pelo menos média
         "alta_dias": 2,  # prazo em até N dias (ou atrasada): alta
+        # link de "Abrir no TickTick": {id} = tarefa, {projeto} = lista (Dida365: troque o domínio)
+        "url_tarefa": "https://ticktick.com/webapp/#p/{projeto}/tasks/{id}",
     },
     "google": {  # Google Agenda, só leitura
         "ativo": False,
@@ -73,6 +75,24 @@ DEFAULTS = {
         "dias": 60,  # quantos dias para frente entram (a janela começa uma semana atrás)
         "feriados_ignorar": [],  # feriados do Google em que você trabalha (trecho do nome)
         "feriados_extras": [],  # folgas que o Google não conhece: "AAAA-MM-DD Nome" (estaduais, municipais)
+    },
+    "agenda": {  # aba Agenda: como ler prazos nos títulos do TickTick
+        "escala": "lista",  # lista | semana | mes (a última escolhida no navegador vale mais)
+        "semanas_lista": 4,
+        "dias_radar": 21,  # janela de "próximos prazos"
+        "regex_codigo": r"^\[([^\]]{1,12})\]\s*",  # 1º grupo = código (matéria, projeto, cliente); vazio = sem códigos
+        "rotulo_codigo": "Matérias",
+        "palavras_prova": ["prova", "exame"],  # início de palavra, sem diferenciar acento nem maiúscula
+        "nao_prova": ["refazer", "revis", "leve"],  # se aparecer junto, não é prova
+        "palavras_entrega": ["entrega", "trabalho", "questionario", "atividade avaliativa", "apresenta"],
+        "ignorar": ["levar:"],  # títulos com isto nunca são prazo (ex.: lembretes)
+        "prioridade_entrega": 3,  # prioridade do TickTick (1 baixa, 3 média, 5 alta) que já conta como entrega; 0 = não usar
+        "rotulo_prova": "prova/provas",  # singular/plural
+        "rotulo_entrega": "entrega/entregas",
+        # marcação manual pelo painel da tarefa: vira etiqueta no TickTick e vale mais que as palavras
+        "etiqueta_prova": "prova",
+        "etiqueta_entrega": "entrega",
+        "etiqueta_nenhum": "sem-prazo",
     },
     "trabalho": {
         "ativo": False,

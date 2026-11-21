@@ -51,12 +51,30 @@
     "sessao": "~/.config/ticktick/config.json",
     "escalar": true,
     "media_dias": 7,
-    "alta_dias": 2
+    "alta_dias": 2,
+    "url_tarefa": "https://ticktick.com/webapp/#p/{projeto}/tasks/{id}"
   },
   "google": {
     "ativo": true,
     "calendarios": [],
     "dias": 60
+  },
+  "agenda": {
+    "escala": "lista",
+    "semanas_lista": 4,
+    "dias_radar": 21,
+    "regex_codigo": "^\\[([^\\]]{1,12})\\]\\s*",
+    "rotulo_codigo": "Projetos",
+    "palavras_prova": ["release", "demo"],
+    "nao_prova": ["ensaio"],
+    "palavras_entrega": ["entrega", "prazo"],
+    "ignorar": [],
+    "prioridade_entrega": 5,
+    "rotulo_prova": "marco/marcos",
+    "rotulo_entrega": "entrega/entregas",
+    "etiqueta_prova": "marco",
+    "etiqueta_entrega": "entrega",
+    "etiqueta_nenhum": "sem-prazo"
   },
   "trabalho": {
     "ativo": true,

@@ -6,6 +6,7 @@ import { renderTrabalho, bindTrabalho } from "./trabalho.js";
 import { renderIdeias, bindIdeias } from "./ideias.js";
 import { renderAjustes, bindAjustes } from "./ajustes.js";
 import { renderFoco, bindFoco, loadFoco } from "./foco.js";
+import { bindTarefa, refreshTask, taskOpen } from "./tarefa.js";
 
 const ALL_VIEWS = { hoje: renderHoje, noite: renderNoite, agenda: renderAgenda, trabalho: renderTrabalho, ideias: renderIdeias, foco: renderFoco, ajustes: renderAjustes };
 const ORDER = ["hoje", "noite", "agenda", "trabalho", "ideias", "foco", "ajustes"];
@@ -52,7 +53,7 @@ async function saveConfig(body, btn) {
 }
 let followUp = null;
 
-function render() { VIEWS[state.view]?.(); renderSources(); }
+function render() { VIEWS[state.view]?.(); refreshTask(); renderSources(); }
 
 function renderSources() {
   const rows = Object.entries(state.src).map(([k, p]) => {
@@ -90,8 +91,12 @@ async function complete(t, btn) {
 async function checkin(habitId, btn) {
   return busy(btn, async () => { await api("/api/habit/checkin", { habitId }); toast("Hábito marcado."); await loadSrc("ticktick"); return true; });
 }
-async function postpone(t, btn) {
-  return busy(btn, async () => { await api("/api/task/postpone", { id: t.id, projectId: t.projectId, days: 1 }); toast("Empurrada um dia no TickTick."); await loadSrc("ticktick"); });
+async function postpone(t, btn, days = 1) {
+  return busy(btn, async () => { await api("/api/task/postpone", { id: t.id, projectId: t.projectId, days }); toast(days === 1 ? "Empurrada um dia no TickTick." : `Empurrada ${days} dias no TickTick.`); await loadSrc("ticktick"); return true; });
+}
+
+async function update(body, btn, msg = "Salvo no TickTick.") {
+  return busy(btn, async () => { await api("/api/task/update", body); toast(msg); await loadSrc("ticktick"); return true; });
 }
 
 function route() {
@@ -137,8 +142,9 @@ function bind() {
     const t = state.src.ticktick.data.tasks.find((x) => x.id === b.closest("[data-task]").dataset.task);
     complete({ id: t.id, projectId: t.projectId }, b);
   });
+  bindTarefa({ complete, postpone, update, changed: () => VIEWS[state.view]?.() });
   bindNoite({ complete, checkin, postpone });
-  bindAgenda();
+  bindAgenda({ complete, postpone });
   bindTrabalho();
   bindAjustes({ save: saveConfig });
   bindFoco();
@@ -147,7 +153,7 @@ function bind() {
     ask: (foco, btn) => busy(btn, async () => { await api("/api/ideias/gerar", { foco }); await loadAll(); }),
   });
   document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select")) return;
+    if (taskOpen() || e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select")) return;
     const views = ORDER.filter((v) => VIEWS[v]);
     if (/^[1-9]$/.test(e.key) && views[Number(e.key) - 1]) { location.hash = views[Number(e.key) - 1]; }
     else if (e.key === "r" || e.key === "R") { $("#sync-btn").click(); }

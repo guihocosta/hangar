@@ -96,7 +96,7 @@ export function renderHoje() {
     $("#c-vence").textContent = list.length || "";
     $("#hoje-vence").innerHTML = list.length ? list.slice(0, 12).map((t) => {
       const p = projectInfo(t.projectId); const tm = taskTime(t); const lt = late.includes(t);
-      return `<li class="row" data-task="${t.id}"><div><p class="row-title">${esc(t.title)}</p>
+      return `<li class="row" data-task="${t.id}"><div><button type="button" class="row-title task-open" data-open-task="${t.id}" aria-haspopup="dialog"><span>${esc(t.title)}</span></button>
         <p class="row-meta"><span style="color:${p.color}">${esc(p.name)}</span>${tm ? `<span class="num">${tm}</span>` : ""}${lt ? `<span class="late">desde ${shortDate(new Date(t.due))}</span>` : ""}</p></div>
         <button type="button" class="btn btn-ghost btn-icon" data-act="complete" aria-label="Concluir ${esc(t.title)} no TickTick">${icon.check}</button></li>`;
     }).join("") + (list.length > 12 ? `<li class="empty">mais ${list.length - 12} na aba Noite</li>` : "")

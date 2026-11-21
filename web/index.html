@@ -84,12 +84,14 @@
             <p class="eyebrow" data-cfg="noite.titulo">A noite</p>
             <h1 id="noite-h" class="display countdown"><span id="left" class="num">--</span> até as <span data-cfg="noite.fimH">23h</span></h1>
             <dl class="stats">
-              <div><dt><label for="start-at">Começar às</label></dt><dd><input type="time" id="start-at" class="num" step="300"></dd></div>
+              <div><dt><label for="start-at" id="start-label">Começa às</label></dt><dd><input type="time" id="start-at" class="num" step="60"></dd></div>
               <div><dt>Planejado</dt><dd id="planned" class="num">0 min</dd></div>
               <div><dt>Folga no fim</dt><dd id="slack" class="num">0 min</dd></div>
             </dl>
+            <p class="plan-status" id="plan-status" aria-live="polite"></p>
             <div class="plan-actions">
-              <button type="button" class="btn btn-primary" id="suggest">Montar a noite</button>
+              <button type="button" class="btn btn-primary" id="start-now">Começar agora</button>
+              <button type="button" class="btn btn-ghost" id="suggest">Montar a noite</button>
               <button type="button" class="btn btn-ghost" id="add-pause">Pausa de 10 min</button>
               <button type="button" class="btn btn-text" id="clear">Limpar</button>
             </div>
@@ -115,13 +117,14 @@
     <section class="view" data-view="agenda" aria-labelledby="agenda-h" hidden>
       <header class="page-head">
         <div>
-          <p class="eyebrow">Agenda do TickTick</p>
+          <p class="eyebrow">Agenda · TickTick</p>
           <h1 id="agenda-h" class="display"></h1>
         </div>
         <div class="head-tools">
           <div class="seg" role="group" aria-label="Escala">
-            <button type="button" data-scale="semana" aria-pressed="true">Semana</button>
-            <button type="button" data-scale="mes" aria-pressed="false">Mês</button>
+            <button type="button" data-scale="lista" aria-pressed="true" title="Lista (L)">Lista</button>
+            <button type="button" data-scale="semana" aria-pressed="false" title="Semana (S)">Semana</button>
+            <button type="button" data-scale="mes" aria-pressed="false" title="Mês (M)">Mês</button>
           </div>
           <div class="cal-nav">
             <button type="button" class="btn btn-ghost btn-icon" data-step="-1" aria-label="Anterior"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
@@ -130,7 +133,10 @@
           </div>
         </div>
       </header>
-      <div class="week" id="week"></div>
+      <div class="ag-radar" id="ag-radar" aria-label="Resumo da agenda"></div>
+      <div class="ag-filters" id="ag-filters"></div>
+      <div class="ag-lista" id="ag-lista" aria-live="polite"></div>
+      <div class="week" id="week" hidden></div>
       <div class="month-wrap" id="month-wrap" hidden>
         <div class="month" id="month" role="grid" aria-labelledby="agenda-h"></div>
         <div class="day-panel panel" id="day-panel" aria-live="polite"></div>
@@ -305,6 +311,7 @@
 
     <noscript><p class="error">O Hangar precisa de JavaScript.</p></noscript>
   </main>
+  <dialog class="drawer" id="task-detail" aria-labelledby="agd-h"></dialog>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="tip" id="tip" role="tooltip" hidden></div>

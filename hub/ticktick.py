@@ -73,6 +73,12 @@ def _task(t, done=False):
            "allDay": bool(t.get("isAllDay")), "start": iso(t.get("startDate") or (t.get("completedTime") if done else None)),
            "due": iso(t.get("dueDate")), "repeat": bool(t.get("repeatFlag")) and not done,
            "items": 0 if done else len(items), "itemsDone": 0 if done else sum(1 for i in items if i.get("status"))}
+    note = (t.get("content") or t.get("desc") or "").strip()
+    if note:
+        out["content"] = note[:4000]
+    if items and not done:
+        out["checklist"] = [{"title": i.get("title", ""), "done": bool(i.get("status"))}
+                            for i in sorted(items, key=lambda i: i.get("sortOrder", 0))]
     if done:
         out["completedAt"] = iso(t.get("completedTime"))
     return out
@@ -321,6 +327,33 @@ def postpone_task(body):
         return _api_postpone(body, days)
     obj = _full_task(body["id"], body["projectId"])
     _shift(obj, days)
+    _save_task(obj)
+
+
+def _apply_edit(obj, body):
+    """Só o que veio no corpo muda; o resto do objeto volta inteiro (update parcial apaga campos)."""
+    if "title" in body:
+        title = str(body["title"]).strip()
+        if not title:
+            raise SourceError("O título não pode ficar vazio.")
+        obj["title"] = title[:500]
+    if "content" in body:  # tarefa com checklist guarda a descrição em desc
+        obj["desc" if obj.get("kind") == "CHECKLIST" else "content"] = str(body["content"])[:20000]
+    if "tags" in body:
+        tags = body["tags"]
+        if not isinstance(tags, list) or not all(isinstance(t, str) and t.strip() for t in tags):
+            raise SourceError("Etiquetas inválidas.")
+        obj["tags"] = [t.strip() for t in tags][:50]
+
+
+def update_task(body):
+    if mode() == "api":
+        obj = op("GET", f"/project/{body['projectId']}/task/{body['id']}")
+        _apply_edit(obj, body)
+        op("POST", f"/task/{body['id']}", obj)
+        return
+    obj = _full_task(body["id"], body["projectId"])
+    _apply_edit(obj, body)
     _save_task(obj)
 
 
