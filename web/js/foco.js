@@ -28,6 +28,8 @@ function leftMs() {
   return durMin(p.phase) * 60000;
 }
 const elapsedMin = () => Math.floor((planMs() - leftMs()) / 60000);
+// p.done: minutos deste foco já anotados em outra área (trocou a área com o relógio rodando)
+const doneMin = () => p.done || 0;
 // "over": o tempo do foco acabou e o relógio segue contando o extra até você concluir
 const extraMs = () => (p.status === "over" ? Math.max(0, Date.now() - p.endsAt) : 0);
 const extraMin = () => Math.floor(extraMs() / 60000);
@@ -61,12 +63,12 @@ function adjust(delta) {
 function setDur(min) { if (p.status !== "idle" || p.phase !== "foco") return; p.dur = clamp(min, 1, 240); persist(); paint(); }
 
 function pause() { p.left = Math.max(0, p.endsAt - Date.now()); p.status = "pause"; persist(); }
-function toIdle(phase) { p.phase = phase; p.status = "idle"; p.plan = null; p.endsAt = null; p.left = null; p.startedAt = null; }
+function toIdle(phase) { p.phase = phase; p.status = "idle"; p.plan = null; p.endsAt = null; p.left = null; p.startedAt = null; p.done = 0; }
 
 function stop() {
   if (p.phase === "foco") {
-    const m = elapsedMin();
-    if (m >= 1) record({ min: m, plano: p.plan });
+    const m = elapsedMin() - doneMin();
+    if (m >= 1) record({ min: m, plano: p.plan - doneMin() });
     else toast("Menos de um minuto: não entrou nas estatísticas.");
   }
   toIdle("foco"); persist(); paint();
@@ -81,7 +83,7 @@ function finish({ extra = 0, manual = false } = {}) {
   const overdue = manual ? 0 : Date.now() - p.endsAt;
   const was = p.phase;
   if (was === "foco") {
-    record({ min: p.plan + extra, plano: p.plan });
+    record({ min: p.plan + extra - doneMin(), plano: Math.max(1, p.plan - doneMin()) });
     p.cycle += 1;
     toIdle(p.cycle >= fc().ciclos ? "longa" : "curta");
     notify(`Foco concluído. Hora da ${LABEL[p.phase].toLowerCase()} (${durMin(p.phase)} min).`);
@@ -96,8 +98,8 @@ function finish({ extra = 0, manual = false } = {}) {
 }
 
 /* ---------- registro no vault ---------- */
-function record({ min, plano }) {
-  p.pending.push({ inicio: p.startedAt || stamp(new Date(Date.now() - min * 60000)), min, plano, tarefa: p.task, area: p.area });
+function record({ min, plano, area = p.area }) {
+  p.pending.push({ inicio: p.startedAt || stamp(new Date(Date.now() - min * 60000)), min, plano, tarefa: p.task, area });
   persist();
   flush();
 }
@@ -115,6 +117,21 @@ async function flush() {
   } catch (e) {
     toast(`Não consegui anotar no vault (tento de novo): ${e.message}`);
   } finally { flushing = false; }
+}
+
+/** Trocou a área no meio do foco: o que já passou fica na área anterior e o relógio segue na nova. */
+function switchArea(area) {
+  const before = p.area;
+  p.area = area;
+  const focusing = p.phase === "foco" && p.status !== "idle";
+  const m = focusing ? (p.status === "over" ? p.plan + extraMin() : elapsedMin()) - doneMin() : 0;
+  if (m >= 1 && before !== area) {
+    record({ min: m, plano: Math.max(1, p.plan - doneMin()), area: before });
+    p.done = doneMin() + m;
+    p.startedAt = stamp(new Date());
+    toast(`${fmtDur(m)} ficaram em ${areaName(before)}; agora conta em ${areaName(area)}.`);
+  }
+  persist(); paint();
 }
 
 /* ---------- avisos ---------- */
@@ -159,7 +176,7 @@ function paint() {
   $("#pomo-cycle").innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i < p.cycle ? "on" : ""}"></i>`).join("");
   $("#pomo-cycle").setAttribute("aria-label", `${Math.min(p.cycle, n)} de ${n} focos até a pausa longa`);
   const main = $("#pomo-main");
-  const lbl = over ? `Concluir (${p.plan + extraMin()} min)` : p.status === "run" ? "Pausar" : p.status === "pause" ? "Retomar" : p.phase === "foco" ? "Começar" : "Começar a pausa";
+  const lbl = over ? `Concluir (${p.plan + extraMin() - doneMin()} min)` : p.status === "run" ? "Pausar" : p.status === "pause" ? "Retomar" : p.phase === "foco" ? "Começar" : "Começar a pausa";
   if (main.dataset.lbl !== lbl) { main.innerHTML = `${lbl} <kbd>Espaço</kbd>`; main.dataset.lbl = lbl; }
   const dur = $("#pomo-dur");
   dur.hidden = over || (p.status === "idle" && p.phase !== "foco");
@@ -204,7 +221,7 @@ function renderStats() {
   const meta = fc().meta_diaria;
   $("#fs-hoje").innerHTML = `${s.hoje.blocos}<small>${meta ? ` / ${meta}` : ""}</small>`;
   $("#fs-min").textContent = fmtDur(s.hoje.min);
-  $("#fs-semana").textContent = fmtDur(s.semana);
+  $("#fs-semana").innerHTML = `${fmtDur(s.semana)}${s.semana_passada ? `<small>passada ${fmtDur(s.semana_passada)}</small>` : ""}`;
   $("#fs-seq").textContent = `${s.sequencia} ${s.sequencia === 1 ? "dia" : "dias"}`;
   $("#foco-file").textContent = s.arquivo;
 
@@ -222,9 +239,11 @@ function renderStats() {
     const dt = new Date(d.date + "T12:00"); return `<tr><td>${WDS[dt.getDay()]} ${shortDate(dt)}</td><td class="num">${d.min}</td><td class="num">${d.blocos}</td></tr>`;
   }).join("") || `<tr><td colspan="3" class="empty">Nenhum bloco ainda.</td></tr>`}</tbody></table>`;
 
-  const amax = Math.max(1, ...s.areas.map((a) => a.min));
-  $("#fareas").innerHTML = s.areas.length ? s.areas.map((a) => `<div class="hb"><span>${esc(areaName(a.area))}</span><span class="hb-track"><span class="hb-fill" style="width:${(a.min / amax) * 100}%;background:${a.area ? areaColor(a.area) : "var(--color-ink-2)"}"></span></span><span class="hb-v num">${fmtDur(a.min)}</span></div>`).join("")
-    : `<p class="empty">Os blocos com área aparecem aqui.</p>`;
+  const amax = Math.max(1, ...s.areas.map((a) => Math.max(a.min, a.antes)));
+  $("#fareas").innerHTML = s.areas.length ? s.areas.map((a) => `<div class="hb hb-sem" title="${esc(areaName(a.area))}: ${fmtDur(a.min)} nesta semana, ${fmtDur(a.antes)} na passada"><span>${esc(areaName(a.area))}</span>
+    <span class="hb-track"><span class="hb-fill" style="width:${(a.min / amax) * 100}%;background:${a.area ? areaColor(a.area) : "var(--color-ink-2)"}"></span><span class="hb-prev" style="left:${(a.antes / amax) * 100}%" aria-hidden="true"></span></span>
+    <span class="hb-v num">${a.min ? fmtDur(a.min) : "–"}<small>${a.antes ? `passada ${fmtDur(a.antes)}` : "passada –"}</small></span></div>`).join("")
+    : `<p class="empty">Os blocos com área desta semana e da passada aparecem aqui.</p>`;
 
   $("#c-fhoje").textContent = s.hoje.itens.length || "";
   if ($("#fhoje .fedit")) return; // editando um bloco: não apaga o formulário
@@ -330,7 +349,7 @@ export function bindFoco() {
   $("#pomo-stop").addEventListener("click", stop);
   $("#pomo-skip").addEventListener("click", skip);
   $("#pomo-task").addEventListener("input", (e) => { p.task = e.target.value; persist(); });
-  $("#pomo-area").addEventListener("change", (e) => { p.area = e.target.value; persist(); });
+  $("#pomo-area").addEventListener("change", (e) => switchArea(e.target.value));
   $("#pomo-what").addEventListener("submit", (e) => { e.preventDefault(); $("#pomo-main").click(); });
   document.addEventListener("keydown", (e) => {
     if (state.view !== "foco" || e.key !== " " || e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select, button, a")) return;

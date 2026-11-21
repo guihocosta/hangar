@@ -167,18 +167,22 @@ def stats(days=28):
     while by_day[d.isoformat()]["blocos"]:
         streak, d = streak + 1, d - timedelta(days=1)
 
-    since = (today - timedelta(days=days - 1)).isoformat()
-    areas = defaultdict(int)
+    # por área na semana (segunda até hoje) e na semana passada inteira, para comparar
+    prev = (monday - timedelta(days=7)).isoformat()
+    areas = defaultdict(lambda: {"min": 0, "antes": 0})
     for e in entries:
-        if e["date"] >= since:
-            areas[e["area"] or ""] += e["min"]
+        if monday.isoformat() <= e["date"] <= today.isoformat():
+            areas[e["area"] or ""]["min"] += e["min"]
+        elif prev <= e["date"] < monday.isoformat():
+            areas[e["area"] or ""]["antes"] += e["min"]
 
     hoje = [e for e in entries if e["date"] == today.isoformat()]
     return {
         "hoje": {"min": by_day[today.isoformat()]["min"], "blocos": by_day[today.isoformat()]["blocos"], "itens": hoje},
         "semana": semana,
+        "semana_passada": sum(v["antes"] for v in areas.values()),
         "sequencia": streak,
         "serie": serie,
-        "areas": sorted(({"area": k or None, "min": v} for k, v in areas.items()), key=lambda x: -x["min"]),
+        "areas": sorted(({"area": k or None, **v} for k, v in areas.items()), key=lambda x: (-x["min"], -x["antes"])),
         "arquivo": str(_file(today)),
     }

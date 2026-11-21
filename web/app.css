@@ -435,6 +435,11 @@ input[type="checkbox"]:checked::after { opacity: 1; }
 .hb-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--c-open); }
 .hb.is-warn .hb-fill { background: var(--color-warn); }
 .hb-v { text-align: right; font-family: var(--font-display); white-space: nowrap; }
+.hb-sem { grid-template-columns: 7.5rem minmax(0, 1fr) 5.5rem; }
+.hb-sem .hb-track { position: relative; overflow: visible; }
+.hb-sem .hb-fill { border-radius: 4px; }
+.hb-prev { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--color-ink); border-radius: 1px; }
+.hb-sem .hb-v small { display: block; font-family: var(--font-body); font-size: var(--text-xs); color: var(--color-muted); }
 .oldest { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-panel); padding: var(--space-md) var(--space-lg); }
 .oldest h3 { margin-top: 0; }
 .oldest .muted { margin-top: var(--space-sm); }
@@ -506,6 +511,7 @@ input[type="checkbox"]:checked::after { opacity: 1; }
   .ask-row { grid-template-columns: minmax(0, 1fr); }
   .pauta { padding: var(--space-md); }
   .hb { grid-template-columns: 6rem minmax(0, 1fr) 2rem; }
+  .hb-sem { grid-template-columns: 6rem minmax(0, 1fr) 5rem; }
 }
 
 /* ---------- ajustes ---------- */
@@ -583,6 +589,7 @@ fieldset.cfg-f { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pomo-actions .btn-primary kbd { color: var(--color-accent-ink); border-color: color-mix(in oklab, var(--color-accent-ink) 40%, transparent); }
 .foco-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); padding: var(--space-md) var(--space-lg); }
 .foco-stats small { font-size: var(--text-sm); color: var(--color-muted); }
+#fs-semana small { display: block; font-family: var(--font-body); font-size: var(--text-xs); }
 .fbars { position: relative; height: 9rem; display: grid; grid-template-columns: repeat(28, minmax(0, 1fr)); gap: 2px; align-items: end; padding-bottom: 1.2rem; }
 .fcol { position: relative; height: 100%; display: flex; align-items: flex-end; cursor: default; }
 .fbar { display: block; width: 100%; height: var(--h); min-height: 0; border-radius: 4px 4px 0 0; background: color-mix(in oklab, var(--color-accent) 70%, var(--color-paper-2)); }
