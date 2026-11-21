@@ -46,6 +46,7 @@ const SCHEMA = [
     ["google.dias", "Dias para frente", "number", "Quantos dias de compromissos entram (a janela começa uma semana atrás)."],
     ["google.feriados_ignorar", "Feriados em que você trabalha", "lines", "O calendário de feriados do Google marca as folgas: nelas a pauta deixa o trabalho de fora e a Hoje esconde o painel de trabalho. Um trecho do nome por linha para não contar (ex.: Servidor Público)."],
     ["google.feriados_extras", "Folgas que o Google não conhece", "lines", "Uma por linha: AAAA-MM-DD Nome (feriados estaduais e municipais, recesso)."],
+  ]],
   ["Agenda", [
     ["agenda.escala", "Visão inicial", "text", "lista, semana ou mes. A última que você escolher na aba fica lembrada neste navegador."],
     ["agenda.semanas_lista", "Semanas na visão Lista", "number", ""],
